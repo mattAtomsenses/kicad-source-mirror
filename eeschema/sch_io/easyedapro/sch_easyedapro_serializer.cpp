@@ -31,7 +31,7 @@
 #include <sch_label.h>
 #include <sch_text.h>
 #include <lib_symbol.h>
-#include <lib_pin.h>
+#include <sch_pin.h>
 #include <sch_item.h>
 
 #include <wx/string.h>

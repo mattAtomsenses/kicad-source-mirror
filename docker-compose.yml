@@ -1,0 +1,77 @@
+services:
+  # Build service
+  kicad-builder:
+    image: ubuntu:24.04
+    container_name: kicad-build
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - kicad-build-cache:/root/.cache
+      - kicad-build:/workspace/build
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    command: bash -c "sleep infinity"
+    stdin_open: true
+    tty: true
+
+  # KiCad GUI service for Windows 11 WSLg
+  kicad-gui:
+    image: ubuntu:24.04
+    container_name: kicad-gui
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - kicad-build:/workspace/build
+      # WSLg display sockets
+      - /mnt/wslg/.X11-unix:/tmp/.X11-unix:rw
+      - /mnt/wslg/runtime-dir:/mnt/wslg/runtime-dir:rw
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/mnt/wslg/runtime-dir}
+      - LD_LIBRARY_PATH=/workspace/build/pcbnew:/workspace/build/common:/workspace/build/3d-viewer/3d_cache/sg:/workspace/build/eeschema:/workspace/build/pcbnew/pcb_io/easyedapro
+      - PULSE_SERVER=unix:/mnt/wslg/PulseServer
+    command: >
+      bash -c "
+      apt-get update -qq &&
+      apt-get install -y --no-install-recommends -qq
+        libwxgtk3.2-1
+        libwxgtk-webview3.2-1
+        libwxgtk-media3.2-1
+        libgtk-3-0t64
+        libcairo2
+        libgl1-mesa-dri
+        libglu1-mesa
+        libglm-dev
+        libboost-system1.83.0
+        libboost-locale1.83.0
+        libboost-thread1.83.0
+        libboost-chrono1.83.0
+        libocct-modeling-algorithms-dev
+        libocct-modeling-data-dev
+        libocct-data-exchange-dev
+        libocct-visualization-dev
+        libocct-foundation-dev
+        libocct-ocaf-dev
+        libngspice0
+        libgit2-1.8
+        libsecret-1-0
+        libcurl4
+        libnng1
+        libprotobuf33
+        libzstd1
+        libssl3
+        zlib1g
+        x11-apps &&
+      cd /workspace/build &&
+      ./kicad/kicad
+      "
+    stdin_open: true
+    tty: true
+    privileged: true
+    network_mode: host
+
+volumes:
+  kicad-build-cache:
+  kicad-build:

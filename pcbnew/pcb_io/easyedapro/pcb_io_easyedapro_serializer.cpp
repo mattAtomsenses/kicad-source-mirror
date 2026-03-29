@@ -23,6 +23,8 @@
 
 #include "pcb_io_easyedapro_serializer.h"
 
+#include <nlohmann/json.hpp>
+
 #include <board.h>
 #include <board_design_settings.h>
 #include <pcb_track.h>
@@ -46,11 +48,9 @@
 
 PCB_IO_EASYEDAPRO_SERIALIZER::PCB_IO_EASYEDAPRO_SERIALIZER( BOARD* aBoard )
         : m_board( aBoard ),
-          m_settings( nullptr ),
+          m_settings( m_board ? &m_board->GetDesignSettings() : nullptr ),
           m_uuidCounter( 0 )
 {
-    if( m_board )
-        m_settings = m_board->GetDesignSettings();
 }
 
 
@@ -264,7 +264,7 @@ std::vector<nlohmann::json> PCB_IO_EASYEDAPRO_SERIALIZER::CreateLayers() const
         int innerLayer = i - 14;
         if( innerLayer <= m_board->GetCopperLayerCount() - 2 )
         {
-            layers.push_back( { "LAYER", i, "SIGNAL", wxString::Format( "Inner%d", innerLayer ).ToUTF8(),
+            layers.push_back( { "LAYER", i, "SIGNAL", wxString::Format( "Inner%d", innerLayer ).utf8_string(),
                                0, "#999966", 1, "#4c4c33", 0.5 } );
         }
     }
@@ -275,8 +275,6 @@ std::vector<nlohmann::json> PCB_IO_EASYEDAPRO_SERIALIZER::CreateLayers() const
 
 nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeTrack( const PCB_TRACK* aTrack )
 {
-    std::vector<nlohmann::json> result;
-
     if( !aTrack )
         return nlohmann::json::array();
 
@@ -300,14 +298,12 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeTrack( const PCB_TRACK* aT
         EDA_ANGLE angleEnd = arc->GetArcAngleEnd();
         double angle = ( angleEnd - angleStart ).AsDegrees();
 
-        result = { "TRACK", layerId, netId, width, start.x, start.y, mid.x, mid.y, end.x, end.y, angle };
+        return nlohmann::json::array( { "TRACK", layerId, netId.utf8_string(), width, start.x, start.y, mid.x, mid.y, end.x, end.y, angle } );
     }
     else
     {
-        result = { "TRACK", layerId, netId, width, start.x, start.y, end.x, end.y };
+        return nlohmann::json::array( { "TRACK", layerId, netId.utf8_string(), width, start.x, start.y, end.x, end.y } );
     }
-
-    return nlohmann::json( result );
 }
 
 
@@ -323,7 +319,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeVia( const PCB_VIA* aVia )
     // Via format: ["VIA", x, y, diameter, drill, net_id]
     wxString netName = aVia->GetNetname();
 
-    return nlohmann::json::array( { "VIA", pos.x, pos.y, diameter, drill, netName.ToUTF8() } );
+    return nlohmann::json::array( { "VIA", pos.x, pos.y, diameter, drill, netName.utf8_string() } );
 }
 
 
@@ -334,14 +330,20 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializePad( const PAD* aPad, cons
 
     VECTOR2D pos = ScalePos( aPad->GetPosition() );
     double rotation = aPad->GetOrientation().AsDegrees();
-    int layerId = LayerToEasyEDA( aPad->GetLayer() );
+
+    // Get the first copper layer for shape/size (typically F_Cu for top pads)
+    PCB_LAYER_ID refLayer = F_Cu;
+    if( aPad->IsOnLayer( B_Cu ) )
+        refLayer = B_Cu;
+
+    int layerId = LayerToEasyEDA( refLayer );
 
     wxString padNumber = aPad->GetNumber();
     wxString netName = aPad->GetNetname();
 
     // Determine pad shape
     int shapeType = 0;  // 0=elliptical, 1=rect, 2=oval, 3=polygon
-    switch( aPad->GetShape() )
+    switch( aPad->GetShape( refLayer ) )
     {
     case PAD_SHAPE::CIRCLE: shapeType = 0; break;
     case PAD_SHAPE::RECTANGLE: shapeType = 1; break;
@@ -353,7 +355,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializePad( const PAD* aPad, cons
     default: shapeType = 0; break;
     }
 
-    VECTOR2I size = aPad->GetSize();
+    VECTOR2I size = aPad->GetSize( refLayer );
     double sizeX = ScaleSize( size.x );
     double sizeY = ScaleSize( size.y );
     double drillSize = aPad->GetDrillSize().x > 0 ? ScaleSize( aPad->GetDrillSize().x ) : 0;
@@ -364,9 +366,9 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializePad( const PAD* aPad, cons
             "PAD",
             GenerateUuid(),  // pad id
             aPad->GetDrillSize().x > 0 ? 1 : 0,  // hole count
-            netName.ToUTF8(),  // net id
+            netName.utf8_string(),  // net id
             layerId,  // layer
-            padNumber.ToUTF8(),  // number
+            padNumber.utf8_string(),  // number
             pos.x, pos.y,
             rotation,
             shapeType,
@@ -375,7 +377,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializePad( const PAD* aPad, cons
             0.0,  // paste expansion ratio
             0.0,  // mask expansion ratio
             0.0,  // courtyard expansion ratio
-            aParentUuid.ToUTF8()  // parent footprint id
+            aParentUuid.utf8_string()  // parent footprint id
     } );
 }
 
@@ -392,7 +394,11 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeZone( const ZONE* aZone )
     wxString netName = aZone->GetNetname();
 
     // Get the outline polygon
-    const SHAPE_POLY_SET& outline = aZone->GetOutline();
+    const SHAPE_POLY_SET* outlinePtr = aZone->Outline();
+    if( !outlinePtr || outlinePtr->OutlineCount() == 0 )
+        return nlohmann::json::array();
+
+    const SHAPE_POLY_SET& outline = *outlinePtr;
 
     if( outline.OutlineCount() == 0 )
         return nlohmann::json::array();
@@ -411,7 +417,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeZone( const ZONE* aZone )
     double width = ScaleSize( aZone->GetMinThickness() );
 
     // REGION format: ["REGION", layer_id, net_id, width, is_closed, coords..., "ggeXXX"]
-    nlohmann::json result = { "REGION", layerId, netName.ToUTF8(), width, 1 };
+    nlohmann::json result = nlohmann::json::array( { "REGION", layerId, netName.utf8_string(), width, 1 } );
     for( double coord : coords )
         result.push_back( coord );
     result.push_back( GenerateUuid() );
@@ -440,7 +446,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeText( const PCB_TEXT* aTex
     return nlohmann::json::array( {
             "TEXT",
             layerId,
-            text.ToUTF8(),
+            text.utf8_string(),
             pos.x, pos.y,
             rotation,
             height,
@@ -512,7 +518,7 @@ nlohmann::json PCB_IO_EASYEDAPRO_SERIALIZER::SerializeShape( const PCB_SHAPE* aS
             coords.push_back( scaled.y );
         }
 
-        nlohmann::json result = { "POLY", layerId, "", width, 1 };
+        nlohmann::json result = nlohmann::json::array( { "POLY", layerId, "", width, 1 } );
         for( double coord : coords )
             result.push_back( coord );
         result.push_back( GenerateUuid() );
@@ -659,12 +665,12 @@ std::vector<nlohmann::json> PCB_IO_EASYEDAPRO_SERIALIZER::SerializeFootprint(
     head[ "editorVersion" ] = "2.2.43.4";
     head[ "importFlag" ] = 0;
     head[ "uuid" ] = GenerateUuid();
-    head[ "source" ] = aFootprint->GetFPID().GetLibItemName().ToUTF8();
-    head[ "title" ] = aFootprint->GetFPID().GetLibItemName().ToUTF8();
+    head[ "source" ] = aFootprint->GetFPID().GetLibItemName().c_str();
+    head[ "title" ] = aFootprint->GetFPID().GetLibItemName().c_str();
     lines.push_back( nlohmann::json::array( { "HEAD", head } ) );
 
     // Add canvas
-    BOX2I bbox = aFootprint->GetBoundingBox( false, false );
+    BOX2I bbox = aFootprint->GetBoundingBox();
     double width = IuToMm( bbox.GetWidth() ) + 2;
     double height = IuToMm( bbox.GetHeight() ) + 2;
 

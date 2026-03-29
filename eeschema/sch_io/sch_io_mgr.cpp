@@ -31,7 +31,7 @@
 #include <sch_io/altium/sch_io_altium.h>
 #include <sch_io/cadstar/sch_io_cadstar_archive.h>
 #include <sch_io/easyeda/sch_io_easyeda.h>
-#include <sch_io/easyedapro/sch_io_easyedapro.h>
+// #include <sch_io/easyedapro/sch_io_easyedapro.h>  // TODO: Fix API compatibility issues
 #include <sch_io/geda/sch_io_geda.h>
 #include <sch_io/database/sch_io_database.h>
 #include <sch_io/ltspice/sch_io_ltspice.h>
@@ -75,7 +75,7 @@ SCH_IO* SCH_IO_MGR::FindPlugin( SCH_FILE_T aFileType )
     case SCH_DATABASE:        return new SCH_IO_DATABASE();
     case SCH_EAGLE:           return new SCH_IO_EAGLE();
     case SCH_EASYEDA:         return new SCH_IO_EASYEDA();
-    case SCH_EASYEDAPRO:      return new SCH_IO_EASYEDAPRO();
+    // case SCH_EASYEDAPRO:      return new SCH_IO_EASYEDAPRO();  // TODO: Fix API compatibility issues
     case SCH_GEDA:            return new SCH_IO_GEDA();
     case SCH_LTSPICE:         return new SCH_IO_LTSPICE();
     case SCH_HTTP:            return new SCH_IO_HTTP_LIB();
@@ -100,7 +100,7 @@ const wxString SCH_IO_MGR::ShowType( SCH_FILE_T aType )
     case SCH_DATABASE:        return wxString( wxT( "Database" ) );
     case SCH_EAGLE:           return wxString( wxT( "EAGLE" ) );
     case SCH_EASYEDA:         return wxString( wxT( "EasyEDA (JLCEDA) Std" ) );
-    case SCH_EASYEDAPRO:      return wxString( wxT( "EasyEDA (JLCEDA) Pro" ) );
+    // case SCH_EASYEDAPRO:      return wxString( wxT( "EasyEDA (JLCEDA) Pro" ) );  // TODO: Fix API compatibility issues
     case SCH_GEDA:            return wxString( wxT( "gEDA / Lepton EDA" ) );
     case SCH_LTSPICE:         return wxString( wxT( "LTspice" ) );
     case SCH_HTTP:            return wxString( wxT( "HTTP" ) );
@@ -131,8 +131,8 @@ SCH_IO_MGR::SCH_FILE_T SCH_IO_MGR::EnumFromStr( const wxString& aType )
         return SCH_EAGLE;
     else if( aType == wxT( "EasyEDA (JLCEDA) Std" ) )
         return SCH_EASYEDA;
-    else if( aType == wxT( "EasyEDA (JLCEDA) Pro" ) )
-        return SCH_EASYEDAPRO;
+    // else if( aType == wxT( "EasyEDA (JLCEDA) Pro" ) )
+    //     return SCH_EASYEDAPRO;  // TODO: Fix API compatibility issues
     else if( aType == wxT( "gEDA / Lepton EDA" ) )
         return SCH_GEDA;
     else if( aType == wxT( "LTspice" ) )

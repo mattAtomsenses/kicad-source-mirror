@@ -78,11 +78,6 @@ public:
     void FootprintSave( const wxString& aFileName, const FOOTPRINT* aFootprint,
                         const std::map<std::string, UTF8>* aProperties = nullptr ) override;
 
-    bool CanSaveBoard( const wxString& aFileName ) const override
-    {
-        return CanReadBoard( aFileName );
-    }
-
     PCB_IO_EASYEDAPRO();
     ~PCB_IO_EASYEDAPRO();
 
