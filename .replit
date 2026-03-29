@@ -1,9 +1,10 @@
-modules = ["python-3.12"]
+modules = ["nodejs-20", "python-3.12"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["nano"]
 
 [workflows]
 runButton = "Project"
@@ -35,4 +36,34 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "web.wsgi:application"]
+run = [
+  "gunicorn",
+  "--bind=0.0.0.0:5000",
+  "--reuse-port",
+  "web.wsgi:application",
+]
+
+[[setup.setupCommands]]
+command = """
+mkdir -p ~/.ssh && \
+chmod 700 ~/.ssh && \
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKEAJ5L+i1eE+6Ro7N8dHyyKCBGmKbMVCucaJZwDQyia replit-kicad-EasyEDA' >> ~/.ssh/authorized_keys && \
+chmod 600 ~/.ssh/authorized_keys && \
+npm install -g @anthropic-ai/claude-code && \
+mkdir -p ~/.claude && \
+  cat > ~/.claude/settings.json << 'EOF'
+  {
+    "env": {
+      "ANTHROPIC_AUTH_TOKEN": "23fbd039b93f49c79b1c0c2de57c4c03.TumFLJENcvgDXb0R",
+      "ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+    },
+    "permissions": {
+      "allow": []
+    },
+    "model": "opus",
+    "effortLevel": "high",
+    "skipDangerousModePermissionPrompt": true
+  }
+  EOF
+"""
