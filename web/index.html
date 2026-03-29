@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiCad EDA - Source Repository</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 3px solid #e94560;
+        }
+
+        header img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #e94560;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #ffffff;
+            letter-spacing: 2px;
+        }
+
+        header p {
+            color: #a0aec0;
+            font-size: 1.1rem;
+            margin-top: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 28px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: #e94560;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            color: #a0aec0;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .tech-item {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .tech-item .tech-icon { font-size: 1.5rem; margin-bottom: 8px; }
+        .tech-item .tech-name { font-weight: 600; color: #fff; font-size: 0.95rem; }
+        .tech-item .tech-desc { font-size: 0.8rem; color: #a0aec0; margin-top: 4px; }
+
+        .structure-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        .structure-table th {
+            background: #0f3460;
+            color: #e94560;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .structure-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #0f3460;
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        .structure-table td:first-child {
+            font-family: "Courier New", monospace;
+            color: #68d391;
+            font-weight: 600;
+        }
+
+        .structure-table tr:hover td { background: #16213e; }
+
+        .build-section {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 40px;
+        }
+
+        .build-section h2 {
+            color: #e94560;
+            margin-bottom: 16px;
+        }
+
+        pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: #e6edf3;
+            margin: 12px 0;
+        }
+
+        code { font-family: "Courier New", monospace; }
+
+        .links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0f3460;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .link-btn:hover { background: #e94560; color: white; }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: #4a5568;
+            font-size: 0.85rem;
+            border-top: 1px solid #0f3460;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-placeholder">&#9889;</div>
+    <h1>KiCad EDA</h1>
+    <p>Open-Source Electronic Design Automation Suite</p>
+    <div class="badge">Source Repository</div>
+</header>
+
+<main>
+
+    <div class="grid" style="margin-top: 40px;">
+        <div class="card">
+            <div class="card-icon">&#128270;</div>
+            <h2>Schematic Editor (Eeschema)</h2>
+            <p>Full-featured schematic capture tool for designing electronic circuits with hierarchical sheets, symbol libraries, and netlist generation.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">&#127777;</div>
+            <h2>PCB Layout Editor (Pcbnew)</h2>
+            <p>Interactive PCB layout editor with built-in router, design rule checking, and support for complex multi-layer board designs.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">&#128064;</div>
+            <h2>3D Viewer</h2>
+            <p>OpenGL-powered 3D visualization of PCB boards with component models, allowing inspection of the complete board assembly.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">&#128196;</div>
+            <h2>Gerber Viewer (Gerbview)</h2>
+            <p>View and verify Gerber RS-274X manufacturing files and Excellon drill files before sending to fabrication.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">&#9881;</div>
+            <h2>PCB Calculator</h2>
+            <p>Engineering calculator for trace widths, via currents, board stackup impedances, and other PCB electrical parameters.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon">&#128247;</div>
+            <h2>Bitmap2Component</h2>
+            <p>Convert bitmap images into PCB footprints or schematic symbols for logos, artwork, and custom graphical elements.</p>
+        </div>
+    </div>
+
+    <h2 class="section-title">Technology Stack</h2>
+    <div class="tech-grid">
+        <div class="tech-item">
+            <div class="tech-icon">&#9881;</div>
+            <div class="tech-name">C++17/20</div>
+            <div class="tech-desc">Core engine &amp; GUI</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#128187;</div>
+            <div class="tech-name">CMake</div>
+            <div class="tech-desc">Build system</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#127912;</div>
+            <div class="tech-name">wxWidgets</div>
+            <div class="tech-desc">Cross-platform GUI</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#127919;</div>
+            <div class="tech-name">OpenGL / Cairo</div>
+            <div class="tech-desc">2D/3D rendering</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#128013;</div>
+            <div class="tech-name">Python</div>
+            <div class="tech-desc">Scripting &amp; plugins</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#128268;</div>
+            <div class="tech-name">Protobuf</div>
+            <div class="tech-desc">API &amp; RPC system</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#128230;</div>
+            <div class="tech-name">Boost</div>
+            <div class="tech-desc">Geometry &amp; utilities</div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon">&#128200;</div>
+            <div class="tech-name">OpenCASCADE</div>
+            <div class="tech-desc">3D STEP/IGES models</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Repository Structure</h2>
+    <table class="structure-table">
+        <thead>
+            <tr>
+                <th>Directory</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>3d-viewer/</td><td>3D board visualization source</td></tr>
+            <tr><td>api/</td><td>Protobuf definitions for KiCad API</td></tr>
+            <tr><td>common/</td><td>Shared logic, GUI widgets, and API server (KiCommon)</td></tr>
+            <tr><td>eeschema/</td><td>Schematic editor application</td></tr>
+            <tr><td>pcbnew/</td><td>PCB layout editor application</td></tr>
+            <tr><td>gerbview/</td><td>Gerber file viewer</td></tr>
+            <tr><td>cvpcb/</td><td>Component-footprint association tool</td></tr>
+            <tr><td>kicad/</td><td>KiCad project manager (main entry point)</td></tr>
+            <tr><td>libs/</td><td>Internal libraries (kimath geometry, kiplatform OS abstraction)</td></tr>
+            <tr><td>include/</td><td>Public headers for common libraries</td></tr>
+            <tr><td>plugins/</td><td>3D model loader plugins (VRML, IDF, etc.)</td></tr>
+            <tr><td>qa/</td><td>Unit and integration test suite</td></tr>
+            <tr><td>thirdparty/</td><td>Bundled external dependencies (fmt, nlohmann_json, clipper2)</td></tr>
+            <tr><td>resources/</td><td>Icons, bitmaps, and OS-specific packaging files</td></tr>
+            <tr><td>tools/</td><td>Developer helpers and build utilities</td></tr>
+            <tr><td>demos/</td><td>Example PCB and schematic projects</td></tr>
+        </tbody>
+    </table>
+
+    <div class="build-section">
+        <h2>Building from Source</h2>
+        <p style="color:#a0aec0; margin-bottom: 16px;">KiCad is a C++ desktop application requiring CMake, wxWidgets 3.2+, and several system libraries. Below is the typical build procedure on Linux:</p>
+
+        <p style="color:#68d391; font-size: 0.85rem; margin-bottom: 6px;">Install dependencies (Ubuntu/Debian):</p>
+        <pre><code>sudo apt install -y cmake ninja-build build-essential \
+    libwxgtk3.2-dev libboost-all-dev libcairo2-dev \
+    libgl1-mesa-dev libocct-modeling-algorithms-dev \
+    python3-dev swig libprotobuf-dev protobuf-compiler \
+    libnng-dev libcurl4-openssl-dev libgit2-dev</code></pre>
+
+        <p style="color:#68d391; font-size: 0.85rem; margin-bottom: 6px;">Configure and build:</p>
+        <pre><code>mkdir build && cd build
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+ninja -j$(nproc)
+sudo cmake --install . --prefix /usr/local</code></pre>
+
+        <p style="color:#68d391; font-size: 0.85rem; margin-bottom: 6px;">CLI export (headless mode):</p>
+        <pre><code>kicad-cli pcb export easyedapro \
+    --output output.epro \
+    input.kicad_pcb</code></pre>
+    </div>
+
+    <h2 class="section-title">External Resources</h2>
+    <div class="links">
+        <a class="link-btn" href="https://kicad.org/" target="_blank">&#127760; Official Website</a>
+        <a class="link-btn" href="https://docs.kicad.org/" target="_blank">&#128196; Documentation</a>
+        <a class="link-btn" href="https://dev-docs.kicad.org/en/build/" target="_blank">&#128736; Build Guide</a>
+        <a class="link-btn" href="https://gitlab.com/kicad/code/kicad" target="_blank">&#128030; GitLab Source</a>
+        <a class="link-btn" href="https://forum.kicad.info/" target="_blank">&#128483; Community Forum</a>
+    </div>
+
+</main>
+
+<footer>
+    KiCad EDA &mdash; Open Source Electronics Design Automation &mdash; GPL v3 Licensed
+</footer>
+
+</body>
+</html>
