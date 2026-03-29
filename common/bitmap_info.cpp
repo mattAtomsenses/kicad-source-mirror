@@ -5036,6 +5036,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::constraint_basic_clearance].emplace_back( BITMAPS::constraint_basic_clearance, wxT( "constraint_basic_clearance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_board_outline_clearance].emplace_back( BITMAPS::constraint_board_outline_clearance, wxT( "constraint_board_outline_clearance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_clearance].emplace_back( BITMAPS::constraint_clearance, wxT( "constraint_clearance.png" ), -1, wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::constraint_courtyard_clearance].emplace_back( BITMAPS::constraint_courtyard_clearance, wxT( "constraint_courtyard_clearance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_copper_to_edge_clearance].emplace_back( BITMAPS::constraint_copper_to_edge_clearance, wxT( "constraint_copper_to_edge_clearance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_copper_to_hole_clearance].emplace_back( BITMAPS::constraint_copper_to_hole_clearance, wxT( "constraint_copper_to_hole_clearance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_creepage_distance].emplace_back( BITMAPS::constraint_creepage_distance, wxT( "constraint_creepage_distance.png" ), -1, wxT( "light" ) );
@@ -5044,9 +5045,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::constraint_hole_to_hole_distance].emplace_back( BITMAPS::constraint_hole_to_hole_distance, wxT( "constraint_hole_to_hole_distance.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_length].emplace_back( BITMAPS::constraint_length, wxT( "constraint_length.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair].emplace_back( BITMAPS::constraint_matched_length_diff_pair, wxT( "constraint_matched_length_diff_pair.png" ), -1, wxT( "light" ) );
-    aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair_v2].emplace_back(
-            BITMAPS::constraint_matched_length_diff_pair_v2, wxT( "constraint_matched_length_diff_pair_v2.png" ), -1,
-            wxT( "light" ) );
+    aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair_v2].emplace_back( BITMAPS::constraint_matched_length_diff_pair_v2, wxT( "constraint_matched_length_diff_pair_v2.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_maximum_allowed_deviation].emplace_back( BITMAPS::constraint_maximum_allowed_deviation, wxT( "constraint_maximum_allowed_deviation.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_maximum_via_count].emplace_back( BITMAPS::constraint_maximum_via_count, wxT( "constraint_maximum_via_count.png" ), -1, wxT( "light" ) );
     aBitmapInfoCache[BITMAPS::constraint_minimum_angular_ring].emplace_back( BITMAPS::constraint_minimum_angular_ring, wxT( "constraint_minimum_angular_ring.png" ), -1, wxT( "light" ) );
@@ -5074,6 +5073,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::constraint_basic_clearance].emplace_back( BITMAPS::constraint_basic_clearance, wxT( "constraint_basic_clearance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_board_outline_clearance].emplace_back( BITMAPS::constraint_board_outline_clearance, wxT( "constraint_board_outline_clearance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_clearance].emplace_back( BITMAPS::constraint_clearance, wxT( "constraint_clearance_dark.png" ), -1, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::constraint_courtyard_clearance].emplace_back( BITMAPS::constraint_courtyard_clearance, wxT( "constraint_courtyard_clearance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_copper_to_edge_clearance].emplace_back( BITMAPS::constraint_copper_to_edge_clearance, wxT( "constraint_copper_to_edge_clearance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_copper_to_hole_clearance].emplace_back( BITMAPS::constraint_copper_to_hole_clearance, wxT( "constraint_copper_to_hole_clearance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_creepage_distance].emplace_back( BITMAPS::constraint_creepage_distance, wxT( "constraint_creepage_distance_dark.png" ), -1, wxT( "dark" ) );
@@ -5082,9 +5082,7 @@ void BuildBitmapInfo( std::unordered_map<BITMAPS, std::vector<BITMAP_INFO>>& aBi
     aBitmapInfoCache[BITMAPS::constraint_hole_to_hole_distance].emplace_back( BITMAPS::constraint_hole_to_hole_distance, wxT( "constraint_hole_to_hole_distance_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_length].emplace_back( BITMAPS::constraint_length, wxT( "constraint_length_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair].emplace_back( BITMAPS::constraint_matched_length_diff_pair, wxT( "constraint_matched_length_diff_pair_dark.png" ), -1, wxT( "dark" ) );
-    aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair_v2].emplace_back(
-            BITMAPS::constraint_matched_length_diff_pair_v2, wxT( "constraint_matched_length_diff_pair_v2_dark.png" ),
-            -1, wxT( "dark" ) );
+    aBitmapInfoCache[BITMAPS::constraint_matched_length_diff_pair_v2].emplace_back( BITMAPS::constraint_matched_length_diff_pair_v2, wxT( "constraint_matched_length_diff_pair_v2_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_maximum_allowed_deviation].emplace_back( BITMAPS::constraint_maximum_allowed_deviation, wxT( "constraint_maximum_allowed_deviation_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_maximum_via_count].emplace_back( BITMAPS::constraint_maximum_via_count, wxT( "constraint_maximum_via_count_dark.png" ), -1, wxT( "dark" ) );
     aBitmapInfoCache[BITMAPS::constraint_minimum_angular_ring].emplace_back( BITMAPS::constraint_minimum_angular_ring, wxT( "constraint_minimum_angular_ring_dark.png" ), -1, wxT( "dark" ) );

@@ -30,6 +30,7 @@
 #include <wx/arrstr.h>
 #include <json_common.h>
 #include <unordered_set>
+#include <set>
 
 #include <kiid.h>
 #include <lib_id.h>

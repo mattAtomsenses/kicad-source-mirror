@@ -48,6 +48,7 @@ set( QA_COMMON_SRCS
     test_filename_resolver.cpp
     test_hotkey_store.cpp
     test_increment.cpp
+    test_item_realignment.cpp
     test_ki_any.cpp
     test_library_tables.cpp
     test_markup_parser.cpp
@@ -64,6 +65,7 @@ set( QA_COMMON_SRCS
     test_property.cpp
     test_property_holder.cpp
     test_reporting.cpp
+    test_rc_tree_model.cpp
     test_refdes_utils.cpp
     test_grid_helper.cpp
     test_string_utils.cpp
@@ -105,6 +107,7 @@ set( QA_COMMON_SRCS
 
     # Graphics import tests
     test_graphics_importer_buffer.cpp
+    test_svg_import.cpp
 
     # Project template tests (source included directly since it's from kicad executable)
     test_project_template.cpp
@@ -171,6 +174,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/qa/mocks/include
     ${INC_AFTER}
 )
+
+set_source_files_properties( test_remote_provider_metadata.cpp test_remote_provider_client.cpp PROPERTIES
+        COMPILE_DEFINITIONS "QA_SRC_ROOT=(\"${CMAKE_SOURCE_DIR}\")"
+        )
 
 if( KICAD_TEST_DATABASE_LIBRARIES )
     set_source_files_properties( test_database.cpp PROPERTIES

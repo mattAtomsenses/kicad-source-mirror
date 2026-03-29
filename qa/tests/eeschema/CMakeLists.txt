@@ -171,7 +171,6 @@ PRIVATE
     common
     kicommon
     pads_common
-    scripting
     kimath
     qa_utils
     qa_schematic_utils

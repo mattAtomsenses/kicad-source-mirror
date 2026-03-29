@@ -88,7 +88,7 @@ PADSTACK& PADSTACK::operator=( const PADSTACK &aOther )
 
     m_mode                  = aOther.m_mode;
     m_layerSet              = aOther.m_layerSet;
-    m_customName            = aOther.m_customName;
+    SetCustomName( aOther.CustomName() );
     m_orientation           = aOther.m_orientation;
     m_copperProps           = aOther.m_copperProps;
     m_frontMaskProps        = aOther.m_frontMaskProps;
@@ -136,7 +136,7 @@ bool PADSTACK::operator==( const PADSTACK& aOther ) const
     if( m_layerSet != aOther.m_layerSet )
         return false;
 
-    if(  m_customName != aOther.m_customName )
+    if(  CustomName() != aOther.CustomName() )
         return false;
 
     if(  m_orientation != aOther.m_orientation )
@@ -1216,6 +1216,11 @@ const PADSTACK::COPPER_LAYER_PROPS& PADSTACK::CopperLayer( PCB_LAYER_ID aLayer )
     }
     else if( m_mode == MODE::CUSTOM )
     {
+        if( IsFrontLayer( aLayer ) && m_copperProps.contains( F_Cu ) )
+            return m_copperProps.at( F_Cu );
+        else if( IsBackLayer( aLayer ) && m_copperProps.contains( B_Cu ) )
+            return m_copperProps.at( B_Cu );
+
         if( m_copperProps.count( aLayer ) )
             return m_copperProps.at( aLayer );
 
@@ -1272,7 +1277,7 @@ PCB_LAYER_ID PADSTACK::EffectiveLayerFor( PCB_LAYER_ID aLayer ) const
     if( m_mode == MODE::NORMAL )
         return ALL_LAYERS;
 
-    if( m_mode == MODE::FRONT_INNER_BACK )
+    if( m_mode == MODE::FRONT_INNER_BACK || IsNonCopperLayer( aLayer ) )
     {
         if( IsFrontLayer( aLayer ) )
             return F_Cu;
@@ -1378,7 +1383,7 @@ int PADSTACK::Compare( const PADSTACK* aLeft, const PADSTACK* aRight )
     if( aLeft->m_layerSet != aRight->m_layerSet )
         return aLeft->m_layerSet.Seq() < aRight->m_layerSet.Seq();
 
-    if( ( diff = aLeft->m_customName.Cmp( aRight->m_customName ) ) != 0 )
+    if( ( diff = wxString( aLeft->CustomName() ).Cmp( aRight->CustomName() ) ) != 0 )
         return diff;
 
     TEST( aLeft->m_orientation.AsTenthsOfADegree(), aRight->m_orientation.AsTenthsOfADegree() );
@@ -1439,7 +1444,7 @@ double PADSTACK::Similarity( const PADSTACK& aOther ) const
     if( m_layerSet != aOther.m_layerSet )
         similarity *= 0.9;
 
-    if( m_customName != aOther.m_customName )
+    if( CustomName() != aOther.CustomName() )
         similarity *= 0.9;
 
     if( m_orientation != aOther.m_orientation )
@@ -1531,7 +1536,33 @@ PCB_LAYER_ID PADSTACK::EndLayer() const
 
 wxString PADSTACK::Name() const
 {
-    return m_customName;
+    return CustomName();
+}
+
+
+const wxChar* PADSTACK::CustomName() const
+{
+    if( m_customName )
+        return *m_customName;
+
+    return wxEmptyString;
+}
+
+
+void PADSTACK::SetCustomName( const wxString& aCustomName )
+{
+    if( aCustomName.IsEmpty() )
+    {
+        m_customName.reset();
+    }
+    else if( m_customName )
+    {
+        *m_customName = aCustomName;
+    }
+    else
+    {
+        m_customName = std::make_unique<wxString>( aCustomName );
+    }
 }
 
 

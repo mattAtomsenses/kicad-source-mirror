@@ -378,7 +378,7 @@ FOOTPRINT* BOARD_NETLIST_UPDATER::replaceFootprint( NETLIST& aNetlist, FOOTPRINT
              // Expand the footprint pad layers
              newFootprint->FixUpPadsForBoard( m_board );
 
-             m_frame->ExchangeFootprint( aFootprint, newFootprint, m_commit );
+             m_frame->ExchangeFootprint( aFootprint, newFootprint, m_commit, true );
 
              msg.Printf( _( "Changed %s footprint from '%s' to '%s'."),
                          aFootprint->GetReference(),
@@ -999,7 +999,7 @@ bool BOARD_NETLIST_UPDATER::updateFootprintGroup( FOOTPRINT* aPcbFootprint,
             if( newGroup == nullptr )
             {
                 newGroup = new PCB_GROUP( m_board );
-                const_cast<KIID&>( newGroup->m_Uuid ) = newGroupKIID;
+                newGroup->SetUuid( newGroupKIID );
                 newGroup->SetName( aNetlistComponent->GetGroup()->name );
 
                 // Add the group to the board manually so we can find it by checking

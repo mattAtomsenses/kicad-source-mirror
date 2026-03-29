@@ -32,7 +32,6 @@
 #include <bitmaps.h>
 #include <eeschema_id.h>
 #include <pgm_base.h>
-#include <python_scripting.h>
 #include <tool/action_menu.h>
 #include <tool/tool_manager.h>
 #include <settings/common_settings.h>
@@ -217,6 +216,8 @@ std::optional<TOOLBAR_CONFIGURATION> SCH_EDIT_TOOLBAR_SETTINGS::DefaultToolbarCo
         // TODO (ISM): Move this to individual actions for each script
         config.AppendControl( ACTION_TOOLBAR_CONTROLS::ipcScripting );
 
+        config.AppendControl( ACTION_TOOLBAR_CONTROLS::overrideLocks );
+
         break;
     }
 
@@ -253,8 +254,6 @@ void SCH_EDIT_FRAME::configureToolbars()
     auto pluginControlFactory =
             [this]( ACTION_TOOLBAR* aToolbar )
             {
-                // Add scripting console and API plugins
-                bool scriptingAvailable = SCRIPTING::IsWxAvailable();
 
 #ifdef KICAD_IPC_API
                 bool haveApiPlugins = Pgm().GetCommonSettings()->m_Api.enable_server
@@ -263,12 +262,10 @@ void SCH_EDIT_FRAME::configureToolbars()
                 bool haveApiPlugins = false;
 #endif
 
-                if( scriptingAvailable || haveApiPlugins )
+                if( haveApiPlugins )
                 {
                     aToolbar->AddScaledSeparator( aToolbar->GetParent() );
-
-                    if( haveApiPlugins )
-                        AddApiPluginTools( aToolbar );
+                    AddApiPluginTools( aToolbar );
                 }
             };
 
@@ -462,8 +459,6 @@ bool SCH_EDIT_FRAME::ShowAddVariantDialog()
     UpdateVariantSelectionCtrl( Schematic().GetVariantNamesForUI() );
     SetCurrentVariant( variantName );
     OnModify();
-    UpdateProperties();
-    HardRedraw();
     return true;
 }
 
@@ -491,5 +486,8 @@ void SCH_EDIT_FRAME::SetCurrentVariant( const wxString& aVariantName )
     {
         m_currentVariantCtrl->SetSelection( newSelection );
         Schematic().SetCurrentVariant( aVariantName );
+
+        UpdateProperties();
+        HardRedraw();
     }
 }

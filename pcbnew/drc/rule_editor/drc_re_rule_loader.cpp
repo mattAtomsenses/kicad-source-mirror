@@ -68,7 +68,29 @@ const DRC_CONSTRAINT* DRC_RULE_LOADER::findConstraint( const DRC_RULE& aRule, DR
 }
 
 
-wxString DRC_RULE_LOADER::extractRuleBody( const wxString& aOriginalText )
+static bool isSymmetricMinOptMax( const DRC_CONSTRAINT* aConstraint )
+{
+    if( !aConstraint )
+        return true;
+
+    const auto& value = aConstraint->GetValue();
+
+    if( !value.HasMin() || !value.HasOpt() || !value.HasMax() )
+        return true;
+
+    return ( value.Opt() - value.Min() ) == ( value.Max() - value.Opt() );
+}
+
+
+static std::shared_ptr<DRC_RE_BASE_CONSTRAINT_DATA> makeCustomRuleData( const DRC_RULE& aRule )
+{
+    auto customData = std::make_shared<DRC_RE_CUSTOM_RULE_CONSTRAINT_DATA>();
+    customData->SetRuleName( aRule.m_Name );
+    return customData;
+}
+
+
+wxString DRC_RULE_LOADER::ExtractRuleBody( const wxString& aOriginalText )
 {
     int ruleKeyword = aOriginalText.Find( wxS( "rule " ) );
     if( ruleKeyword == wxNOT_FOUND )
@@ -89,7 +111,7 @@ wxString DRC_RULE_LOADER::extractRuleBody( const wxString& aOriginalText )
 }
 
 
-wxString DRC_RULE_LOADER::extractRuleComment( const wxString& aOriginalText )
+wxString DRC_RULE_LOADER::ExtractRuleComment( const wxString& aOriginalText )
 {
     wxString      comment;
     wxArrayString lines = wxSplit( aOriginalText, '\n', '\0' );
@@ -199,13 +221,18 @@ DRC_RULE_LOADER::createConstraintData( DRC_RULE_EDITOR_CONSTRAINT_NAME   aPanel,
 
     case ROUTING_DIFF_PAIR:
     {
-        auto data = std::make_shared<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>();
-        data->SetRuleName( aRule.m_Name );
-        data->SetConstraintCode( "diff_pair_gap" );
-
         const DRC_CONSTRAINT* trackWidth = findConstraint( aRule, TRACK_WIDTH_CONSTRAINT );
         const DRC_CONSTRAINT* diffGap = findConstraint( aRule, DIFF_PAIR_GAP_CONSTRAINT );
         const DRC_CONSTRAINT* uncoupled = findConstraint( aRule, MAX_UNCOUPLED_CONSTRAINT );
+
+        if( !isSymmetricMinOptMax( trackWidth ) || !isSymmetricMinOptMax( diffGap ) )
+        {
+            return makeCustomRuleData( aRule );
+        }
+
+        auto data = std::make_shared<DRC_RE_ROUTING_DIFF_PAIR_CONSTRAINT_DATA>();
+        data->SetRuleName( aRule.m_Name );
+        data->SetConstraintCode( "diff_pair_gap" );
 
         if( trackWidth )
         {
@@ -251,26 +278,22 @@ DRC_RULE_LOADER::createConstraintData( DRC_RULE_EDITOR_CONSTRAINT_NAME   aPanel,
 
     case ROUTING_WIDTH:
     {
+        const DRC_CONSTRAINT* trackWidth = findConstraint( aRule, TRACK_WIDTH_CONSTRAINT );
+
+        if( !isSymmetricMinOptMax( trackWidth ) )
+            return makeCustomRuleData( aRule );
+
         auto data = std::make_shared<DRC_RE_ROUTING_WIDTH_CONSTRAINT_DATA>();
         data->SetRuleName( aRule.m_Name );
         data->SetConstraintCode( "track_width" );
-
-        const DRC_CONSTRAINT* trackWidth = findConstraint( aRule, TRACK_WIDTH_CONSTRAINT );
 
         if( trackWidth )
         {
             double opt = toMM( trackWidth->GetValue().Opt() );
             double min = toMM( trackWidth->GetValue().Min() );
-            double max = toMM( trackWidth->GetValue().Max() );
 
             data->SetOptWidth( opt );
-
-            if( opt > 0 )
-            {
-                double tolFromMin = opt - min;
-                double tolFromMax = max - opt;
-                data->SetWidthTolerance( std::max( tolFromMin, tolFromMax ) );
-            }
+            data->SetWidthTolerance( opt - min );
         }
 
         return data;
@@ -278,11 +301,14 @@ DRC_RULE_LOADER::createConstraintData( DRC_RULE_EDITOR_CONSTRAINT_NAME   aPanel,
 
     case ABSOLUTE_LENGTH:
     {
+        const DRC_CONSTRAINT* length = findConstraint( aRule, LENGTH_CONSTRAINT );
+
+        if( !isSymmetricMinOptMax( length ) )
+            return makeCustomRuleData( aRule );
+
         auto data = std::make_shared<DRC_RE_ABSOLUTE_LENGTH_TWO_CONSTRAINT_DATA>();
         data->SetRuleName( aRule.m_Name );
         data->SetConstraintCode( "length" );
-
-        const DRC_CONSTRAINT* length = findConstraint( aRule, LENGTH_CONSTRAINT );
 
         if( length )
         {
@@ -298,11 +324,14 @@ DRC_RULE_LOADER::createConstraintData( DRC_RULE_EDITOR_CONSTRAINT_NAME   aPanel,
 
     case MATCHED_LENGTH_DIFF_PAIR:
     {
+        const DRC_CONSTRAINT* length = findConstraint( aRule, LENGTH_CONSTRAINT );
+
+        if( !isSymmetricMinOptMax( length ) )
+            return makeCustomRuleData( aRule );
+
         auto data = std::make_shared<DRC_RE_MATCHED_LENGTH_DIFF_PAIR_CONSTRAINT_DATA>();
         data->SetRuleName( aRule.m_Name );
         data->SetConstraintCode( "length" );
-
-        const DRC_CONSTRAINT* length = findConstraint( aRule, LENGTH_CONSTRAINT );
 
         if( length )
         {
@@ -590,7 +619,7 @@ std::vector<DRC_RE_LOADED_PANEL_ENTRY> DRC_RULE_LOADER::LoadRule( const DRC_RULE
 
         if( match.panelType == CUSTOM_RULE && customFallback )
         {
-            customFallback->SetRuleText( extractRuleBody( aOriginalText ) );
+            customFallback->SetRuleText( ExtractRuleBody( aOriginalText ) );
         }
 
         if( match.panelType != VIA_STYLE && match.panelType != SILK_TO_SOLDERMASK_CLEARANCE
@@ -606,7 +635,7 @@ std::vector<DRC_RE_LOADED_PANEL_ENTRY> DRC_RULE_LOADER::LoadRule( const DRC_RULE
             source = source.Mid( 1, source.Length() - 2 );
         entry.layerSource = source;
 
-        wxString comment = extractRuleComment( aOriginalText );
+        wxString comment = ExtractRuleComment( aOriginalText );
         if( !comment.IsEmpty() )
             constraintData->SetComment( comment );
 
@@ -624,11 +653,11 @@ std::vector<DRC_RE_LOADED_PANEL_ENTRY> DRC_RULE_LOADER::LoadRule( const DRC_RULE
         customData->SetRuleName( aRule.m_Name );
         customData->SetRuleCondition( condition );
 
-        wxString comment = extractRuleComment( aOriginalText );
+        wxString comment = ExtractRuleComment( aOriginalText );
         if( !comment.IsEmpty() )
             customData->SetComment( comment );
 
-        customData->SetRuleText( extractRuleBody( aOriginalText ) );
+        customData->SetRuleText( ExtractRuleBody( aOriginalText ) );
 
         DRC_RE_LOADED_PANEL_ENTRY entry( CUSTOM_RULE, customData, aRule.m_Name, condition,
                                          aRule.m_Severity, aRule.m_LayerCondition );
@@ -667,7 +696,7 @@ std::vector<DRC_RE_LOADED_PANEL_ENTRY> DRC_RULE_LOADER::LoadFromString( const wx
     for( const auto& rule : parsedRules )
     {
         // Extract the actual original text from the file content
-        wxString originalText = extractRuleText( aRulesText, rule->m_Name );
+        wxString originalText = ExtractRuleText( aRulesText, rule->m_Name );
 
         std::vector<DRC_RE_LOADED_PANEL_ENTRY> ruleEntries = LoadRule( *rule, originalText );
 
@@ -679,7 +708,7 @@ std::vector<DRC_RE_LOADED_PANEL_ENTRY> DRC_RULE_LOADER::LoadFromString( const wx
 }
 
 
-wxString DRC_RULE_LOADER::extractRuleText( const wxString& aContent, const wxString& aRuleName )
+wxString DRC_RULE_LOADER::ExtractRuleText( const wxString& aContent, const wxString& aRuleName )
 {
     // Search for the rule by name, handling both quoted and unquoted names.
     // The quoted form includes the closing quote as a boundary so partial

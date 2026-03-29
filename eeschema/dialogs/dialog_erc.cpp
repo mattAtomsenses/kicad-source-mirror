@@ -503,7 +503,7 @@ void DIALOG_ERC::OnRunERCClick( wxCommandEvent& event )
 
     m_runningResultsBook->ChangeSelection( 0 );   // Display the "Tests Running..." tab
     m_messages->Clear();
-    wxSafeYield();                                // Allow time slice to refresh Messages
+    Update();                                     // Repaint only, don't enter the full event loop
 
     m_running = true;
     m_sdbSizer1Cancel->SetLabel( _( "Cancel" ) );
@@ -542,7 +542,7 @@ void DIALOG_ERC::OnRunERCClick( wxCommandEvent& event )
         m_messages->Report( _( "Done.<br><br>" ), RPT_SEVERITY_INFO );
 
     Raise();
-    wxSafeYield();                                // Allow time slice to refresh Messages
+    Update();                                     // Repaint only, don't enter the full event loop
 
     m_running = false;
     m_sdbSizer1Cancel->SetLabel( _( "Close" ) );
@@ -972,9 +972,9 @@ void DIALOG_ERC::OnIgnoredItemRClick( wxListEvent& event )
     int           errorCode = (int) event.m_item.GetData();
     wxMenu        menu;
 
-    menu.Append( RPT_SEVERITY_ERROR,   _( "Error" ),   wxEmptyString, wxITEM_CHECK );
-    menu.Append( RPT_SEVERITY_WARNING, _( "Warning" ), wxEmptyString, wxITEM_CHECK );
-    menu.Append( RPT_SEVERITY_IGNORE,  _( "Ignore" ),  wxEmptyString, wxITEM_CHECK );
+    menu.Append( RPT_SEVERITY_ERROR,   _( "Error" ),   wxEmptyString, wxITEM_RADIO );
+    menu.Append( RPT_SEVERITY_WARNING, _( "Warning" ), wxEmptyString, wxITEM_RADIO );
+    menu.Append( RPT_SEVERITY_IGNORE,  _( "Ignore" ),  wxEmptyString, wxITEM_RADIO );
 
     menu.Check( settings.GetSeverity( errorCode ), true );
 

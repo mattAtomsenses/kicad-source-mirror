@@ -1739,7 +1739,7 @@ bool PNS_KICAD_IFACE_BASE::syncZone( PNS::NODE* aWorld, ZONE* aZone, SHAPE_POLY_
     LSET layers = aZone->GetLayerSet();
 
     poly = aZone->Outline();
-    poly->CacheTriangulation( false );
+    poly->CacheTriangulation();
 
     if( !poly->IsTriangulationUpToDate() )
     {
@@ -2880,7 +2880,7 @@ void PNS_KICAD_IFACE::SetHostTool( PCB_TOOL_BASE* aTool )
 
 PCB_LAYER_ID PNS_KICAD_IFACE_BASE::GetBoardLayerFromPNSLayer( int aLayer ) const
 {
-    if( aLayer < 0 )
+    if( aLayer < 0 || aLayer >= m_board->GetCopperLayerCount() )
         return PCB_LAYER_ID::UNDEFINED_LAYER;
 
     if( aLayer == 0 )

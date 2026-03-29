@@ -38,6 +38,8 @@ set( QA_PCBNEW_SRCS
     test_barcode_load_save.cpp
     test_board_connected_items.cpp
     test_board_design_settings.cpp
+    test_board_item_index.cpp
+    test_board_loader.cpp
     test_board_item.cpp
     test_board_commit.cpp
     test_board_statistics.cpp
@@ -48,8 +50,10 @@ set( QA_PCBNEW_SRCS
     test_graphics_load_save.cpp
     test_graphics_import_mgr.cpp
     test_group_load_save.cpp
+    test_headless_board_context.cpp
     test_footprint.cpp
     test_footprint_load_save.cpp
+    test_footprint_realignment.cpp
     test_fp_lib_load_save.cpp
     test_io_mgr.cpp
     test_lset.cpp
@@ -65,7 +69,6 @@ set( QA_PCBNEW_SRCS
     test_reference_image_load.cpp
     test_gencad_export.cpp
     test_pdf_output_path.cpp
-    test_plot_controller.cpp
     test_shape_corner_radius.cpp
     test_pcb_grid_helper.cpp
     test_save_load.cpp
@@ -106,6 +109,8 @@ set( QA_PCBNEW_SRCS
     drc/test_drc_creepage_issue20480.cpp
     drc/test_drc_creepage_issue21482.cpp
     drc/test_drc_creepage_issue23364.cpp
+    drc/test_drc_creepage_issue23389.cpp
+    drc/test_drc_creepage_issue23576.cpp
     drc/test_drc_physical_clearance.cpp
     drc/test_drc_rule_editor.cpp
     drc/test_drc_bitmap_overlay_panel.cpp
@@ -122,6 +127,7 @@ set( QA_PCBNEW_SRCS
     pcb_io/pads/test_pads_part_structures.cpp
     pcb_io/pads/test_pads_keepout.cpp
     pcb_io/geda/test_geda_pcb_import.cpp
+    pcb_io/sprint_layout/test_sprint_layout_import.cpp
 
     pcb_io/kicad_sexpr/test_kicad_sexpr.cpp
 
@@ -192,7 +198,6 @@ target_link_libraries( qa_pcbnew
     gal
     common
     gal
-    scripting
     qa_utils
     dxflib_qcad
     tinyspline_lib
@@ -202,7 +207,6 @@ target_link_libraries( qa_pcbnew
     ${PCBNEW_IO_LIBRARIES}
     ${wxWidgets_LIBRARIES}
     ${GDI_PLUS_LIBRARIES}
-    ${PYTHON_LIBRARIES}
     Boost::headers
     Boost::unit_test_framework
     ${PCBNEW_EXTRA_LIBS}    # -lrt must follow Boost

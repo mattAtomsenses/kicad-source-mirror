@@ -528,7 +528,7 @@ APPEARANCE_CONTROLS::APPEARANCE_CONTROLS( PCB_BASE_FRAME* aParent, wxWindow* aFo
                 passOnFocus();
             } );
 
-    m_cbFlipBoard->SetValue( m_frame->GetCanvas()->GetView()->IsMirroredX() );
+    m_cbFlipBoard->SetValue( m_frame->GetDisplayOptions().m_FlipBoardView );
     m_cbFlipBoard->Bind( wxEVT_CHECKBOX,
             [&]( wxCommandEvent& aEvent )
             {
@@ -1442,7 +1442,7 @@ void APPEARANCE_CONTROLS::UpdateDisplayOptions()
     case NET_COLOR_MODE::OFF:      m_rbNetColorOff->SetValue( true );      break;
     }
 
-    m_cbFlipBoard->SetValue( m_frame->GetCanvas()->GetView()->IsMirroredX() );
+    m_cbFlipBoard->SetValue( m_frame->GetDisplayOptions().m_FlipBoardView );
 
     if( !m_isFpEditor )
     {
@@ -2949,8 +2949,7 @@ void APPEARANCE_CONTROLS::onLayerPresetChanged( wxCommandEvent& aEvent )
 
 void APPEARANCE_CONTROLS::doApplyLayerPreset( const LAYER_PRESET& aPreset )
 {
-    BOARD*           board = m_frame->GetBoard();
-    KIGFX::PCB_VIEW* view = m_frame->GetCanvas()->GetView();
+    BOARD* board = m_frame->GetBoard();
 
     setVisibleLayers( aPreset.layers );
     setVisibleObjects( aPreset.renderLayers );
@@ -2972,11 +2971,9 @@ void APPEARANCE_CONTROLS::doApplyLayerPreset( const LAYER_PRESET& aPreset )
     if( !m_isFpEditor )
         m_frame->GetCanvas()->SyncLayersVisibility( board );
 
-    if( aPreset.flipBoard != view->IsMirroredX() )
-    {
-        view->SetMirror( !view->IsMirroredX(), view->IsMirroredY() );
-        view->RecacheAllItems();
-    }
+    PCB_DISPLAY_OPTIONS options = m_frame->GetDisplayOptions();
+    options.m_FlipBoardView = aPreset.flipBoard;
+    m_frame->SetDisplayOptions( options, false );
 
     m_frame->GetCanvas()->Refresh();
 

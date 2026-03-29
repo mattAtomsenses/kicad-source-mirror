@@ -406,8 +406,23 @@ void PCB_BASE_FRAME::FocusOnItems( std::vector<BOARD_ITEM*> aItems, PCB_LAYER_ID
      * Perform a step-wise deflate to find the visual-center-of-mass
      */
 
+    if( itemPoly.IsEmpty() )
+    {
+        FocusOnLocation( focusPt, aAllowScroll );
+        GetCanvas()->Refresh();
+        return;
+    }
+
     BOX2I    bbox = itemPoly.BBox();
     int      step = std::min( bbox.GetWidth(), bbox.GetHeight() ) / 10;
+
+    // Tiny shapes can quantize to a zero deflate step
+    if( step <= 0 )
+    {
+        FocusOnLocation( bbox.Centre(), aAllowScroll );
+        GetCanvas()->Refresh();
+        return;
+    }
 
     while( !itemPoly.IsEmpty() )
     {
@@ -1055,6 +1070,9 @@ void PCB_BASE_FRAME::SetDisplayOptions( const PCB_DISPLAY_OPTIONS& aOptions, boo
     KIGFX::PCB_VIEW*    view   = static_cast<KIGFX::PCB_VIEW*>( canvas->GetView() );
 
     view->UpdateDisplayOptions( aOptions );
+    view->SetMirror( aOptions.m_FlipBoardView, view->IsMirroredY() );
+    view->RecacheAllItems();
+
     canvas->SetHighContrastLayer( GetActiveLayer() );
     OnDisplayOptionsChanged();
 

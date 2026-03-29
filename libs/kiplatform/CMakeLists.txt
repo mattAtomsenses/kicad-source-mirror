@@ -90,7 +90,7 @@ elseif( UNIX )
     list( APPEND PLATFORM_LIBS ${secret_LIBRARIES} )
 
     # Detect Poppler library for printing and configure it
-    find_package( Poppler REQUIRED )
+    find_package( Poppler REQUIRED COMPONENTS Glib )
     include_directories( SYSTEM ${POPPLER_INCLUDE_DIRS} )
     list( APPEND PLATFORM_LIBS ${Poppler_LIBRARIES} )
 

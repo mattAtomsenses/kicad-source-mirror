@@ -44,7 +44,7 @@
 
 
 #include <geometry/shape_circle.h>
-#include <geometry/rtree.h>
+#include <geometry/rtree/packed_rtree.h>
 
 
 // Simple wrapper for track segment data in the RTree
@@ -54,7 +54,7 @@ struct CREEPAGE_TRACK_ENTRY
     PCB_LAYER_ID layer;
 };
 
-using TRACK_RTREE = RTree<CREEPAGE_TRACK_ENTRY*, int, 2, double>;
+using TRACK_RTREE = KIRTREE::PACKED_RTREE<CREEPAGE_TRACK_ENTRY*, int, 2>;
 
 extern bool SegmentIntersectsBoard( const VECTOR2I& aP1, const VECTOR2I& aP2,
                                     const std::vector<BOARD_ITEM*>&       aBe,
@@ -155,19 +155,21 @@ struct PATH_CONNECTION
 
                 bool intersects = false;
 
-                aTrackIndex->Search( searchMin, searchMax,
-                        [&]( CREEPAGE_TRACK_ENTRY* entry ) -> bool
+                auto trackVisitor = [&]( CREEPAGE_TRACK_ENTRY* entry ) -> bool
+                {
+                    if( entry && entry->layer == aLayer )
+                    {
+                        if( segPath.Intersects( entry->segment ) )
                         {
-                            if( entry && entry->layer == aLayer )
-                            {
-                                if( segPath.Intersects( entry->segment ) )
-                                {
-                                    intersects = true;
-                                    return false; // Stop searching
-                                }
-                            }
-                            return true; // Continue searching
-                        } );
+                            intersects = true;
+                            return false; // Stop searching
+                        }
+                    }
+
+                    return true; // Continue searching
+                };
+
+                aTrackIndex->Search( searchMin, searchMax, trackVisitor );
 
                 if( intersects )
                     return false;
@@ -412,7 +414,6 @@ public:
         m_radius = aRadius;
     }
 
-    VECTOR2I GetPos() const { return m_pos; };
     int      GetRadius() const override { return m_radius; };
 
     std::vector<PATH_CONNECTION> Paths( const BE_SHAPE_POINT& aS2, double aMaxWeight,
@@ -433,7 +434,6 @@ public:
                                         double aMaxSquaredWeight ) const override;
 
 protected:
-    VECTOR2I m_pos = VECTOR2I( 0, 0 );
     double   m_radius = 1;
 };
 

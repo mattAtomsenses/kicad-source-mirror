@@ -329,7 +329,17 @@ COLOR4D PCB_RENDER_SETTINGS::GetColor( const BOARD_ITEM* aItem, int aLayer ) con
 
     // Selection disambiguation
     if( aItem->IsBrightened() )
+    {
+        if( aItem->Type() == PCB_MARKER_T )
+        {
+            auto itemLayerIter = m_layerColors.find( LAYER_DRC_HIGHLIGHTED );
+
+            if( itemLayerIter != m_layerColors.end() )
+                return itemLayerIter->second;
+        }
+
         return color.Brightened( m_selectFactor ).WithAlpha( 0.8 );
+    }
 
     // Normal selection
     if( aItem->IsSelected() )
@@ -2276,7 +2286,7 @@ void PCB_PAINTER::draw( const PCB_SHAPE* aShape, int aLayer )
                         // primitives to draw the polygon solid shape on Opengl.  GLU tessellation
                         // is much slower, so currently we are using our tessellation.
                         if( m_gal->IsOpenGlEngine() && !shape.IsTriangulationUpToDate() )
-                            shape.CacheTriangulation( true, true );
+                            shape.CacheTriangulation( true );
 
                         m_gal->DrawPolygon( shape );
                     }
@@ -2488,7 +2498,7 @@ void PCB_PAINTER::draw( const PCB_TEXT* aText, int aLayer )
 
     if( aText->IsKnockout() )
     {
-        SHAPE_POLY_SET finalPoly = aText->GetKnockoutCache( font, resolvedText, m_maxError );
+        const SHAPE_POLY_SET& finalPoly = aText->GetKnockoutCache( font, resolvedText, m_maxError );
 
         m_gal->SetIsStroke( false );
         m_gal->SetIsFill( true );
@@ -2998,7 +3008,7 @@ void PCB_PAINTER::draw( const ZONE* aZone, int aLayer )
         // draw the polygon solid shape on Opengl.  GLU tessellation is much slower,
         // so currently we are using our tessellation.
         if( m_gal->IsOpenGlEngine() && !polySet->IsTriangulationUpToDate() )
-            polySet->CacheTriangulation( true, true );
+            polySet->CacheTriangulation( true );
 
         m_gal->DrawPolygon( *polySet, displayMode == ZONE_DISPLAY_MODE::SHOW_TRIANGULATION );
     }
@@ -3195,6 +3205,7 @@ void PCB_PAINTER::draw( const PCB_MARKER* aMarker, int aLayer )
     case LAYER_MARKER_SHADOWS:
     case LAYER_DRC_ERROR:
     case LAYER_DRC_WARNING:
+    case LAYER_DRC_EXCLUSION:
     {
         bool isShadow = aLayer == LAYER_MARKER_SHADOWS;
 
@@ -3231,7 +3242,7 @@ void PCB_PAINTER::draw( const PCB_MARKER* aMarker, int aLayer )
             {
                 m_gal->SetIsFill( false );
                 m_gal->SetIsStroke( true );
-                m_gal->SetStrokeColor( WHITE );
+                m_gal->SetStrokeColor( color );
                 m_gal->SetLineWidth( KiROUND( aMarker->MarkerScale() / 2.0 ) );
 
                 if( shape.GetShape() == SHAPE_T::SEGMENT )

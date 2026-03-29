@@ -58,7 +58,6 @@
 #include <core/profile.h>
 #include <project/project_file.h>
 #include <project/net_settings.h>
-#include <python_scripting.h>
 #include <sch_edit_frame.h>
 #include <symbol_chooser_frame.h>
 #include <sch_painter.h>
@@ -368,7 +367,9 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
         SetAuiPaneSize( m_auimgr, designBlocksPane, aui_cfg.design_blocks_panel_docked_width, -1 );
 
     if( aui_cfg.remote_symbol_show )
+    {
         SetAuiPaneSize( m_auimgr, remoteSymbolPane, aui_cfg.remote_symbol_panel_docked_width, -1 );
+    }
 
     if( aui_cfg.hierarchy_panel_docked_width > 0 )
     {
@@ -411,6 +412,14 @@ SCH_EDIT_FRAME::SCH_EDIT_FRAME( KIWAY* aKiway, wxWindow* aParent ) :
     {
         m_auimgr.Update();
     }
+
+    CallAfter( [this]()
+            {
+                wxAuiPaneInfo& remotePane = m_auimgr.GetPane( RemoteSymbolPaneName() );
+
+                if( remotePane.IsShown() && m_remoteSymbolPane )
+                    m_remoteSymbolPane->Activate();
+            } );
 
     resolveCanvasType();
     SwitchCanvas( m_canvasType );
@@ -821,6 +830,8 @@ void SCH_EDIT_FRAME::setupUIConditions()
 
     mgr->SetConditions( ACTIONS::zoomTool,            CHECK( cond.CurrentTool( ACTIONS::zoomTool ) ) );
     mgr->SetConditions( ACTIONS::selectionTool,       CHECK( cond.CurrentTool( ACTIONS::selectionTool ) ) );
+    mgr->SetConditions( ACTIONS::selectSetRect,       CHECK( cond.CurrentTool( ACTIONS::selectionTool ) ) );
+    mgr->SetConditions( ACTIONS::selectSetLasso,      CHECK( cond.CurrentTool( ACTIONS::selectionTool ) ) );
 
     auto showHiddenPinsCond =
             [this]( const SELECTION& )
@@ -1471,9 +1482,9 @@ void SCH_EDIT_FRAME::ProjectChanged()
 
     // Register schematic saver for autosave history
     Kiway().LocalHistory().RegisterSaver( m_schematic,
-            [this]( const wxString& aProjectPath, std::vector<wxString>& aFiles )
+            [this]( const wxString& aProjectPath, std::vector<HISTORY_FILE_DATA>& aFileData )
             {
-                m_schematic->SaveToHistory( aProjectPath, aFiles );
+                m_schematic->SaveToHistory( aProjectPath, aFileData );
             } );
 
     m_designBlocksPane->ProjectChanged();
@@ -1991,7 +2002,7 @@ void SCH_EDIT_FRAME::CommonSettingsChanged( int aFlags )
         {
             SCH_LINE* line = static_cast<SCH_LINE*>( item );
 
-            if( line->IsWire() )
+            if( line->IsWire() || line->IsBus() )
                 UpdateHopOveredWires( line );
         }
     }
@@ -2954,6 +2965,9 @@ void SCH_EDIT_FRAME::ToggleRemoteSymbolPanel()
 
     if( remotePane.IsShown() )
     {
+        if( m_remoteSymbolPane )
+            m_remoteSymbolPane->Activate();
+
         if( remotePane.IsFloating() )
         {
             remotePane.FloatingSize( cfg->m_AuiPanels.remote_symbol_panel_float_width,

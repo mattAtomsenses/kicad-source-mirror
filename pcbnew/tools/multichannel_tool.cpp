@@ -37,6 +37,7 @@
 #include <geometry/convex_hull.h>
 #include <geometry/shape_utils.h>
 #include <pcb_group.h>
+#include <pcb_generator.h>
 #include <footprint.h>
 #include <pad.h>
 #include <pcb_text.h>
@@ -44,7 +45,6 @@
 #include <connectivity/connectivity_data.h>
 #include <connectivity/topo_match.h>
 #include <algorithm>
-#include <pcbnew_scripting_helpers.h>
 #include <pcb_track.h>
 #include <tool/tool_manager.h>
 #include <tools/pcb_picker_tool.h>
@@ -257,6 +257,10 @@ bool MULTICHANNEL_TOOL::findOtherItemsInRuleArea( RULE_AREA* aRuleArea, std::set
         for( EDA_ITEM* item : aRuleArea->m_designBlockItems )
         {
             if( item->Type() == PCB_FOOTPRINT_T )
+                continue;
+
+            // TODO: Preserve nested groups when applying design block layout.
+            if( item->Type() == PCB_GROUP_T )
                 continue;
 
             if( BOARD_ITEM* boardItem = dynamic_cast<BOARD_ITEM*>( item ) )
@@ -1017,6 +1021,27 @@ int MULTICHANNEL_TOOL::findRoutingInRuleArea( RULE_AREA* aRuleArea, std::set<BOA
             if( drawing->IsConnected() )
                 testAndAdd( static_cast<BOARD_CONNECTED_ITEM*>( drawing ) );
         }
+
+        for( PCB_GENERATOR* generator : board()->Generators() )
+        {
+            if( generator->GetGeneratorType() != wxT( "tuning_pattern" ) )
+                continue;
+
+            if( !generator->HitTest( aRAPoly.Outline( 0 ), false ) )
+                continue;
+
+            for( EDA_ITEM* member : generator->GetItems() )
+            {
+                if( BOARD_CONNECTED_ITEM* bci = dynamic_cast<BOARD_CONNECTED_ITEM*>( member ) )
+                {
+                    if( !aOutput.contains( bci ) )
+                    {
+                        aOutput.insert( bci );
+                        count++;
+                    }
+                }
+            }
+        }
     }
 
     return count;
@@ -1062,7 +1087,7 @@ bool MULTICHANNEL_TOOL::copyRuleAreaContents( RULE_AREA* aRefArea, RULE_AREA* aT
 
     SHAPE_POLY_SET refPoly;
     refPoly.AddOutline( refOutline );
-    refPoly.CacheTriangulation( false );
+    refPoly.CacheTriangulation();
 
     SHAPE_POLY_SET targetPoly;
 
@@ -1070,7 +1095,7 @@ bool MULTICHANNEL_TOOL::copyRuleAreaContents( RULE_AREA* aRefArea, RULE_AREA* aT
     newTargetOutline.Rotate( rot, VECTOR2( 0, 0 ) );
     newTargetOutline.Move( disp );
     targetPoly.AddOutline( newTargetOutline );
-    targetPoly.CacheTriangulation( false );
+    targetPoly.CacheTriangulation();
 
     std::shared_ptr<CONNECTIVITY_DATA> connectivity = board()->GetConnectivity();
     std::map<EDA_GROUP*, EDA_GROUP*>   groupMap;
@@ -1092,6 +1117,14 @@ bool MULTICHANNEL_TOOL::copyRuleAreaContents( RULE_AREA* aRefArea, RULE_AREA* aT
                         PCB_GROUP* newGroup = static_cast<PCB_GROUP*>(
                                 static_cast<PCB_GROUP*>( parentGroup->AsEdaItem() )->Duplicate( false ) );
                         newGroup->GetItems().clear();
+                        newGroup->SetParentGroup( nullptr );
+
+                        if( newGroup->Type() == PCB_GENERATOR_T )
+                        {
+                            newGroup->Rotate( VECTOR2( 0, 0 ), rot );
+                            newGroup->Move( disp );
+                        }
+
                         groupMap[parentGroup] = newGroup;
                         aCommit->Add( newGroup );
                     }

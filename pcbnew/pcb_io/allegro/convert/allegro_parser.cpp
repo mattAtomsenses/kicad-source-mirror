@@ -1058,13 +1058,20 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x1C_PADSTACK( FILE_STREAM& aStrea
     ReadArrayU32( aStream, data.m_DrillArr );
 
     ReadCond( aStream, aVer, data.m_SlotAndUnknownArr );
-    ReadCond( aStream, aVer, data.m_UnknownArr8_2 );
+    ReadCond( aStream, aVer, data.m_Unknown12 );
 
     // V180 has 8 extra uint32s between the fixed arrays and the component table
     ReadCond( aStream, aVer, data.m_V180Trailer );
 
-    // Work out how many fixed slots we have, and how many per-layer slots
-    data.m_NumFixedCompEntries = aVer < FMT_VER::V_172 ? 10 : 21;
+    // Work out how many fixed slots we have
+    if( aVer < FMT_VER::V_165 )
+        data.m_NumFixedCompEntries = 10;
+    else if( aVer < FMT_VER::V_172 )
+        data.m_NumFixedCompEntries = 11;
+    else
+        data.m_NumFixedCompEntries = 21;
+
+    // ...and how many per-layer slots
     data.m_NumCompsPerLayer = aVer < FMT_VER::V_172 ? 3 : 4;
 
     const size_t nComps = data.m_NumFixedCompEntries + ( data.m_LayerCount * data.m_NumCompsPerLayer );
@@ -1906,9 +1913,21 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
                 data.m_NumItems, aStream.Position() ) );
     }
 
-    data.m_Items.reserve( data.m_NumItems );
+    if( data.m_Count > data.m_NumItems )
+    {
+        THROW_IO_ERROR( wxString::Format(
+                "Block 0x36 filled count %u exceeds capacity %u at offset %#010zx",
+                data.m_Count, data.m_NumItems, aStream.Position() ) );
+    }
+
+    // Each block has m_NumItems slots but only m_Count are populated; the rest are
+    // zeroes. Iterate all slots to stride across them correctly, but only keep the
+    // actual existing items.
+    data.m_Items.reserve( data.m_Count );
     for( uint32_t i = 0; i < data.m_NumItems; ++i )
     {
+        const bool keep = i < data.m_Count;
+
         switch( data.m_Code )
         {
         case 0x02:
@@ -1920,7 +1939,8 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
             ReadCond( aStream, aVer, item.m_Ys );
             ReadCond( aStream, aVer, item.m_Zs );
 
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x03:
@@ -1933,7 +1953,8 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
 
             ReadCond( aStream, aVer, item.m_Unknown1 );
 
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x05:
@@ -1941,8 +1962,10 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
             BLK_0x36_DEF_TABLE::X05 item;
 
             aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
+            ReadCond( aStream, aVer, item.m_Unknown2 );
 
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x06:
@@ -1956,7 +1979,8 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
 
             ReadCond( aStream, aVer, item.m_Unknown2 );
 
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x08:
@@ -1977,28 +2001,32 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
 
             ReadCond( aStream, aVer, item.m_Ys );
 
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x0B:
         {
             BLK_0x36_DEF_TABLE::X0B item;
             aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x0C:
         {
             BLK_0x36_DEF_TABLE::X0C item;
             aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x0D:
         {
             BLK_0x36_DEF_TABLE::X0D item;
             aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x0F:
@@ -2007,7 +2035,8 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
             item.m_Key = aStream.ReadU32();
             ReadArrayU32( aStream, item.m_Ptrs );
             item.m_Ptr2 = aStream.ReadU32();
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         case 0x10:
@@ -2015,7 +2044,17 @@ static std::unique_ptr<BLOCK_BASE> ParseBlock_0x36( FILE_STREAM& aStream, FMT_VE
             BLK_0x36_DEF_TABLE::X10 item;
             aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
             ReadCond( aStream, aVer, item.m_Unknown2 );
-            data.m_Items.emplace_back( std::move( item ) );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
+            break;
+        }
+        case 0x12:
+        {
+            BLK_0x36_DEF_TABLE::X12 item;
+            // aStream.ReadBytes( item.m_Unknown.data(), item.m_Unknown.size() );
+            aStream.Skip( 1052 );
+            if( keep )
+                data.m_Items.emplace_back( std::move( item ) );
             break;
         }
         default: THROW_IO_ERROR( wxString::Format( "Unknown substruct type %#02x in block 0x36", data.m_Code ) );

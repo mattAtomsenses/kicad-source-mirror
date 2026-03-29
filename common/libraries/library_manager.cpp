@@ -25,6 +25,7 @@
 #include <magic_enum.hpp>
 #include <thread_pool.h>
 #include <ranges>
+#include <set>
 #include <unordered_set>
 
 #include <paths.h>
@@ -158,7 +159,7 @@ void LIBRARY_MANAGER::loadNestedTables( LIBRARY_TABLE& aRootTable )
                             row.SetErrorDescription( child->ErrorDescription() );
                         }
 
-                        m_childTables.insert( { row.URI(), std::move( child ) } );
+                        m_childTables.insert_or_assign( row.URI(), std::move( child ) );
                     }
                 }
             };
@@ -526,6 +527,11 @@ void LIBRARY_MANAGER::LoadProjectTables( std::initializer_list<LIBRARY_TABLE_TYP
 
 void LIBRARY_MANAGER::ProjectChanged()
 {
+    // Abort any running async library loads before reloading project tables.
+    // Background workers hold raw LIBRARY_TABLE_ROW pointers that become dangling
+    // when loadTables() destroys and replaces the table objects.
+    AbortAsyncLoads();
+
     LoadProjectTables( Pgm().GetSettingsManager().Prj().GetProjectDirectory() );
 
     std::scoped_lock lock( m_adaptersMutex );
@@ -646,8 +652,8 @@ std::vector<LIBRARY_TABLE_ROW*> LIBRARY_MANAGER::Rows( LIBRARY_TABLE_TYPE aType,
         wxFAIL;
     }
 
-    std::function<void(const std::unique_ptr<LIBRARY_TABLE>&)> processTable =
-            [&]( const std::unique_ptr<LIBRARY_TABLE>& aTable )
+    std::function<void(const std::unique_ptr<LIBRARY_TABLE>&, bool parentHidden)> processTable =
+            [&]( const std::unique_ptr<LIBRARY_TABLE>& aTable, const bool parentHidden )
             {
                 if( aTable->Type() != aType )
                     return;
@@ -658,16 +664,20 @@ std::vector<LIBRARY_TABLE_ROW*> LIBRARY_MANAGER::Rows( LIBRARY_TABLE_TYPE aType,
                     {
                         if( row.IsOk() || aIncludeInvalid )
                         {
+                            // Hide child row if parent is hidden
+                            if( parentHidden )
+                                row.SetHidden( true );
+
                             if( row.Type() == LIBRARY_TABLE_ROW::TABLE_TYPE_NAME )
                             {
                                 if( !m_childTables.contains( row.URI() ) )
                                     continue;
 
-                                // Don't include libraries from disabled or hidden nested tables
-                                if( row.Disabled() || row.Hidden() )
+                                // Don't include libraries from disabled nested tables
+                                if( row.Disabled() )
                                     continue;
 
-                                processTable( m_childTables.at( row.URI() ) );
+                                processTable( m_childTables.at( row.URI() ), row.Hidden() );
                             }
                             else
                             {
@@ -684,7 +694,7 @@ std::vector<LIBRARY_TABLE_ROW*> LIBRARY_MANAGER::Rows( LIBRARY_TABLE_TYPE aType,
     for( const std::unique_ptr<LIBRARY_TABLE>& table :
          std::views::join( tables ) | std::views::values )
     {
-        processTable( table );
+        processTable( table, false );
     }
 
     std::vector<LIBRARY_TABLE_ROW*> ret;
@@ -762,9 +772,14 @@ void LIBRARY_MANAGER::ReloadTables( LIBRARY_TABLE_SCOPE aScope,
                                     std::initializer_list<LIBRARY_TABLE_TYPE> aTablesToLoad )
 {
     if( aScope == LIBRARY_TABLE_SCOPE::PROJECT )
+    {
+        AbortAsyncLoads();
         LoadProjectTables( aTablesToLoad );
+    }
     else
+    {
         LoadGlobalTables( aTablesToLoad );
+    }
 }
 
 

@@ -390,6 +390,8 @@ void TRACKS_CLEANER::cleanup( bool aDeleteDuplicateVias, bool aDeleteNullSegment
         rtree.Insert( track, track->GetLayer() );
     }
 
+    rtree.Build();
+
     std::set<BOARD_ITEM*> toRemove;
 
     for( PCB_TRACK* track : m_brd->Tracks() )

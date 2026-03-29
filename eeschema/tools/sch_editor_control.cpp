@@ -338,6 +338,11 @@ wxImage renderSelectionToBitmap( SCH_EDIT_FRAME* aFrame, const SCH_SELECTION& aS
             drawingSheet->SetSheetName( TO_UTF8( aFrame->GetScreenDesc() ) );
             drawingSheet->SetSheetPath( TO_UTF8( aFrame->GetFullScreenDesc() ) );
 
+            wxString currentVariant = screen->Schematic()->GetCurrentVariant();
+            wxString variantDesc = screen->Schematic()->GetVariantDescription( currentVariant );
+            drawingSheet->SetVariantName( TO_UTF8( currentVariant ) );
+            drawingSheet->SetVariantDesc( TO_UTF8( variantDesc ) );
+
             view->Add( drawingSheet.get() );
         }
 
@@ -2287,6 +2292,9 @@ int SCH_EDITOR_CONTROL::Paste( const TOOL_EVENT& aEvent )
         if( schItem->IsConnectable() )
             schItem->SetConnectivityDirty();
 
+        // Clear lock state on paste to match PCB editor behavior
+        schItem->SetLocked( false );
+
         if( item->Type() == SCH_SYMBOL_T )
         {
             SCH_SYMBOL* symbol = static_cast<SCH_SYMBOL*>( item );
@@ -3304,13 +3312,6 @@ int SCH_EDITOR_CONTROL::ToggleAnnotateAuto( const TOOL_EVENT& aEvent )
 {
     EESCHEMA_SETTINGS* cfg = m_frame->eeconfig();
     cfg->m_AnnotatePanel.automatic = !cfg->m_AnnotatePanel.automatic;
-    return 0;
-}
-
-
-int SCH_EDITOR_CONTROL::TogglePythonConsole( const TOOL_EVENT& aEvent )
-{
-    m_frame->ScriptingConsoleEnableDisable();
     return 0;
 }
 

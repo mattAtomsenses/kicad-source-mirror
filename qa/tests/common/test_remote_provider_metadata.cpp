@@ -26,11 +26,7 @@ namespace
 {
 wxFileName schemaPath()
 {
-    wxFileName schemaFile( wxString::FromUTF8( __FILE__ ) );
-    schemaFile.Normalize( wxPATH_NORM_DOTS | wxPATH_NORM_TILDE | wxPATH_NORM_ABSOLUTE );
-    schemaFile.RemoveLastDir();
-    schemaFile.RemoveLastDir();
-    schemaFile.RemoveLastDir();
+    wxFileName schemaFile = wxFileName::DirName( wxString::FromUTF8( QA_SRC_ROOT ) );
     schemaFile.AppendDir( wxS( "resources" ) );
     schemaFile.AppendDir( wxS( "schemas" ) );
     schemaFile.SetFullName( wxS( "kicad-remote-provider-metadata-v1.schema.json" ) );
@@ -90,6 +86,14 @@ BOOST_AUTO_TEST_CASE( ValidMetadataParses )
 
 BOOST_AUTO_TEST_CASE( DefaultSchemaPathParsesWhenSchemaIsStaged )
 {
+    wxFileName defaultPath = REMOTE_PROVIDER_METADATA::DefaultSchemaPath();
+
+    if( !defaultPath.IsFileReadable() )
+    {
+        BOOST_TEST_MESSAGE( "Skipping: default schema path not readable (" + defaultPath.GetFullPath() + ")" );
+        return;
+    }
+
     wxString error;
     std::optional<REMOTE_PROVIDER_METADATA> metadata =
             REMOTE_PROVIDER_METADATA::FromJson( validMetadata(), error );

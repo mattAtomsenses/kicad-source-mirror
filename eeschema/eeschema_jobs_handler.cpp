@@ -400,6 +400,9 @@ int EESCHEMA_JOBS_HANDLER::JobExportPlot( JOB* aJob )
     if( m_reporter->HasMessageOfSeverity( RPT_SEVERITY_ERROR ) )
         return CLI::EXIT_CODES::ERR_UNKNOWN;
 
+    for( const wxString& outputPath : schPlotter->GetOutputFilePaths() )
+        aJob->AddOutput( outputPath );
+
     return CLI::EXIT_CODES::OK;
 }
 
@@ -527,6 +530,8 @@ int EESCHEMA_JOBS_HANDLER::JobExportNetlist( JOB* aJob )
 
     if( !res )
         return CLI::EXIT_CODES::ERR_UNKNOWN;
+
+    aJob->AddOutput( outPath );
 
     return CLI::EXIT_CODES::OK;
 }
@@ -893,6 +898,8 @@ int EESCHEMA_JOBS_HANDLER::JobExportBom( JOB* aJob )
         if( !res )
             return CLI::EXIT_CODES::ERR_UNKNOWN;
 
+        aJob->AddOutput( outPath );
+
         m_reporter->Report( wxString::Format( _( "Wrote bill of materials to '%s'." ), outPath ),
                             RPT_SEVERITY_ACTION );
     }
@@ -964,6 +971,8 @@ int EESCHEMA_JOBS_HANDLER::JobExportPythonBom( JOB* aJob )
 
     if( !res )
         return CLI::EXIT_CODES::ERR_UNKNOWN;
+
+    aJob->AddOutput( outPath );
 
     m_reporter->Report( wxString::Format( _( "Wrote bill of materials to '%s'." ), outPath ),
                         RPT_SEVERITY_ACTION );
@@ -1413,6 +1422,11 @@ DS_PROXY_VIEW_ITEM* EESCHEMA_JOBS_HANDLER::getDrawingSheetProxyView( SCHEMATIC* 
     drawingSheet->SetColorLayer( LAYER_SCHEMATIC_DRAWINGSHEET );
     drawingSheet->SetPageBorderColorLayer( LAYER_SCHEMATIC_PAGE_LIMITS );
     drawingSheet->SetIsFirstPage( aSch->RootScreen()->GetVirtualPageNumber() == 1 );
+
+    wxString currentVariant = aSch->GetCurrentVariant();
+    wxString variantDesc = aSch->GetVariantDescription( currentVariant );
+    drawingSheet->SetVariantName( TO_UTF8( currentVariant ) );
+    drawingSheet->SetVariantDesc( TO_UTF8( variantDesc ) );
 
     drawingSheet->SetSheetName( "" );
     drawingSheet->SetSheetPath( "" );

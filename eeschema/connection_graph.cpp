@@ -1931,9 +1931,12 @@ void CONNECTION_GRAPH::processSubGraphs()
                         if( prefix.empty() )
                             prefix = wxT( "BUS" ); // So result will be "BUS_1{...}"
 
-                        wxString oldName = aConn->Name().AfterFirst( '{' );
+                        // Use BusPrefix length to skip past any formatting markers
+                        // in the prefix (e.g. ~{RESET}) rather than AfterFirst('{')
+                        // which would split at a formatting brace.
+                        wxString members = aConn->Name().Mid( aConn->BusPrefix().length() );
 
-                        newName << prefix << wxT( "_" ) << suffixStr << wxT( "{" ) << oldName;
+                        newName << prefix << wxT( "_" ) << suffixStr << members;
 
                         aConn->ConfigureFromLabel( newName );
                     }
@@ -2917,11 +2920,22 @@ void CONNECTION_GRAPH::propagateToNeighbors( CONNECTION_SUBGRAPH* aSubgraph, boo
                     // the names differ, check if the neighbor's current name still matches
                     // a member of this bus. If it does, the neighbor was updated by a different
                     // member of this same bus and we should preserve that (determinism).
-                    // If it doesn't match any member, the bus member was renamed and we should update.
-                    SCH_CONNECTION temp( nullptr, neighbor->m_sheet );
-                    temp.ConfigureFromLabel( neighbor_name );
+                    // If it doesn't match any member, the bus member was renamed and we should
+                    // update. We compare by name rather than VectorIndex because non-bus
+                    // connections (e.g., "GND" from power pin propagation) have a default
+                    // VectorIndex of 0 that falsely matches the first bus member.
+                    bool alreadyUpdatedByBusMember = false;
 
-                    if( matchBusMember( parent, &temp ) )
+                    for( const auto& m : parent->Members() )
+                    {
+                        if( m->Name() == neighbor_name )
+                        {
+                            alreadyUpdatedByBusMember = true;
+                            break;
+                        }
+                    }
+
+                    if( alreadyUpdatedByBusMember )
                         continue;
                 }
 
@@ -4238,6 +4252,30 @@ bool CONNECTION_GRAPH::ercCheckLabels( const CONNECTION_SUBGRAPH* aSubgraph )
         {
             size_t allPins = pinCount;
             size_t localPins = pinCount;
+            bool   hasLocalHierarchy = false;
+
+            // A label that bridges a local hierarchical connection (sheet
+            // pin) to a bus with hierarchical routing is serving a valid
+            // purpose even without local component pins.
+            if( !aSubgraph->m_hier_pins.empty() || !aSubgraph->m_hier_ports.empty() )
+            {
+                for( auto& [connection, busParents] : aSubgraph->m_bus_parents )
+                {
+                    for( const CONNECTION_SUBGRAPH* busParent : busParents )
+                    {
+                        if( busParent->m_sheet == sheet
+                            && ( !busParent->m_hier_pins.empty()
+                                 || !busParent->m_hier_ports.empty() ) )
+                        {
+                            hasLocalHierarchy = true;
+                            break;
+                        }
+                    }
+
+                    if( hasLocalHierarchy )
+                        break;
+                }
+            }
 
             auto it = m_net_name_to_subgraphs_map.find( netName );
 
@@ -4255,7 +4293,15 @@ bool CONNECTION_GRAPH::ercCheckLabels( const CONNECTION_SUBGRAPH* aSubgraph )
                     allPins += neighborPins;
 
                     if( neighbor->m_sheet == sheet )
+                    {
                         localPins += neighborPins;
+
+                        if( !neighbor->m_hier_pins.empty()
+                            || !neighbor->m_hier_ports.empty() )
+                        {
+                            hasLocalHierarchy = true;
+                        }
+                    }
                 }
             }
 
@@ -4265,11 +4311,13 @@ bool CONNECTION_GRAPH::ercCheckLabels( const CONNECTION_SUBGRAPH* aSubgraph )
                 ok = false;
             }
 
-            // A local label should connect to at least one component pin on its own
-            // sheet. A label that only reaches pins through hierarchy (sheet pins or
-            // buses) serves no local purpose and is likely mislabeled.
+            // A local label that connects to other subgraphs with
+            // hierarchical connections on the same sheet (through bus
+            // parents or net-name neighbors) is routing signals and should
+            // not be flagged even without local component pins.
             if( allPins == 0
-                || ( type == SCH_LABEL_T && localPins == 0 && allPins > 1 && !has_nc ) )
+                || ( type == SCH_LABEL_T && localPins == 0 && allPins > 1
+                     && !has_nc && !hasLocalHierarchy ) )
             {
                 reportError( text, ERCE_LABEL_NOT_CONNECTED );
                 ok = false;
