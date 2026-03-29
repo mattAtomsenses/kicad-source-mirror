@@ -23,6 +23,7 @@
  */
 
 #include "sch_easyedapro_parser.h"
+#include "sch_easyedapro_serializer.h"
 #include "sch_io_easyedapro.h"
 
 #include <font/fontconfig.h>
@@ -640,4 +641,190 @@ SCH_SHEET* SCH_IO_EASYEDAPRO::LoadSchematicFile( const wxString& aFileName,
     aSchematic->FixupJunctionsAfterImport();
 
     return rootSheet;
+}
+
+
+void SCH_IO_EASYEDAPRO::SaveSchematicFile( const wxString& aFileName, SCH_SHEET* aSheet,
+                                            SCHEMATIC* aSchematic,
+                                            const std::map<std::string, UTF8>* aProperties )
+{
+    m_props = aProperties;
+
+    if( !aSheet || !aSchematic )
+        THROW_IO_ERROR( _( "No schematic to save" ) );
+
+    if( m_progressReporter )
+    {
+        m_progressReporter->Report( wxString::Format( _( "Saving %s..." ), aFileName ) );
+
+        if( !m_progressReporter->KeepRefreshing() )
+            THROW_IO_ERROR( _( "File export canceled by user." ) );
+    }
+
+    // Create serializer
+    SCH_EASYEDAPRO_SERIALIZER serializer( aSchematic );
+
+    // Serialize the schematic to JSON format
+    std::vector<nlohmann::json> lines = serializer.SerializeSchematic( aSheet );
+
+    // Check if we're updating an existing .epro or creating a new one
+    wxFileName fname( aFileName );
+    bool isEpro = ( fname.GetExt() == wxS( "epro" ) || fname.GetExt() == wxS( "zip" ) );
+
+    if( isEpro )
+    {
+        // For .epro files, we need to create/update a ZIP archive
+        // This is a simplified version - a full implementation would merge with existing project data
+
+        // Create a temporary file for the schematic content
+        wxFileName tempFile = wxFileName::CreateTempFileName( wxS( "esch_" ) );
+
+        {
+            wxFFileOutputStream ffos( tempFile.GetFullPath() );
+            wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+            for( const nlohmann::json& line : lines )
+            {
+                tos.WriteString( wxString::FromUTF8( line.dump() ) );
+                tos.WriteString( wxS( "\n" ) );
+            }
+        }
+
+        // Create or update the .epro ZIP archive
+        {
+            wxFFileOutputStream zos( aFileName );
+            wxZipOutputStream    zip( zos, 0 );
+
+            // Add the schematic file
+            {
+                wxZipEntry* entry = new wxZipEntry( wxS( "SHEET/sheet_0.esch" ) );
+                zip.PutNextEntry( entry );
+
+                wxFFileInputStream fis( tempFile.GetFullPath() );
+                zip.Write( fis );
+                zip.CloseEntry();
+            }
+
+            // Create a minimal project.json
+            nlohmann::json project;
+            project[ "version" ] = "1.0";
+            project[ "type" ] = "schematic";
+            project[ "schematics" ] = nlohmann::json::object();
+            project[ "schematics" ][ "sch_0" ] = "SHEET/sheet_0.esch";
+
+            wxString projectJson = project.dump( 2 );
+
+            {
+                wxZipEntry* entry = new wxZipEntry( wxS( "project.json" ) );
+                zip.PutNextEntry( entry );
+                zip.Write( projectJson.mb_str( wxConvUTF8 ), projectJson.length() );
+                zip.CloseEntry();
+            }
+
+            zip.Close();
+        }
+
+        // Clean up temp file
+        wxRemoveFile( tempFile.GetFullPath() );
+    }
+    else
+    {
+        // For raw .esch files, write directly
+        wxFFileOutputStream ffos( aFileName );
+        wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+        for( const nlohmann::json& line : lines )
+        {
+            tos.WriteString( wxString::FromUTF8( line.dump() ) );
+            tos.WriteString( wxS( "\n" ) );
+        }
+    }
+}
+
+
+void SCH_IO_EASYEDAPRO::SaveLibrary( const wxString& aFileName,
+                                     const std::map<std::string, UTF8>* aProperties )
+{
+    m_props = aProperties;
+
+    // For EasyEDA Pro, libraries are stored in .epro ZIP archives
+    // This is a simplified implementation that creates a minimal library file
+
+    wxFileName fname( aFileName );
+    bool isElibz = ( fname.GetExt() == wxS( "elibz" ) || fname.GetExt() == wxS( "epro" )
+                     || fname.GetExt() == wxS( "zip" ) );
+
+    if( isElibz )
+    {
+        // Create a minimal .elibz archive
+        wxFFileOutputStream zos( aFileName );
+        wxZipOutputStream    zip( zos, 0 );
+
+        // Create a minimal library.json
+        nlohmann::json library;
+        library[ "version" ] = "1.0";
+        library[ "type" ] = "symbol_library";
+        library[ "symbols" ] = nlohmann::json::object();
+
+        wxString libraryJson = library.dump( 2 );
+
+        {
+            wxZipEntry* entry = new wxZipEntry( wxS( "library.json" ) );
+            zip.PutNextEntry( entry );
+            zip.Write( libraryJson.mb_str( wxConvUTF8 ), libraryJson.length() );
+            zip.CloseEntry();
+        }
+
+        zip.Close();
+    }
+}
+
+
+void SCH_IO_EASYEDAPRO::SaveSymbol( const wxString& aLibraryPath, const LIB_SYMBOL* aSchSymbol,
+                                     const std::map<std::string, UTF8>* aProperties )
+{
+    m_props = aProperties;
+
+    if( !aSchSymbol )
+        THROW_IO_ERROR( _( "No symbol to save" ) );
+
+    // Create serializer with a temporary schematic
+    SCH_EASYEDAPRO_SERIALIZER serializer( nullptr );
+
+    // Serialize the symbol
+    std::vector<nlohmann::json> lines = serializer.SerializeSymbol( aSchSymbol );
+
+    // For symbol files, we write them to the library archive
+    // This is a simplified implementation - a full version would update the existing library
+
+    wxFileName fname( aLibraryPath );
+
+    // If it's a ZIP archive, we need to update it
+    if( fname.GetExt() == wxS( "elibz" ) || fname.GetExt() == wxS( "epro" )
+         || fname.GetExt() == wxS( "zip" ) )
+    {
+        // For now, just write to a separate .esym file
+        wxString symbolFileName = fname.GetPath() + wxS( "/" ) + aSchSymbol->GetName() + wxS( ".esym" );
+
+        wxFFileOutputStream ffos( symbolFileName );
+        wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+        for( const nlohmann::json& line : lines )
+        {
+            tos.WriteString( wxString::FromUTF8( line.dump() ) );
+            tos.WriteString( wxS( "\n" ) );
+        }
+    }
+    else
+    {
+        // Write directly to .esym file
+        wxFFileOutputStream ffos( aLibraryPath );
+        wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+        for( const nlohmann::json& line : lines )
+        {
+            tos.WriteString( wxString::FromUTF8( line.dump() ) );
+            tos.WriteString( wxS( "\n" ) );
+        }
+    }
 }

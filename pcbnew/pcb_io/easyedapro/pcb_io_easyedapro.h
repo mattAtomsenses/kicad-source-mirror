@@ -71,6 +71,18 @@ public:
 
     bool IsLibraryWritable( const wxString& aLibraryPath ) override { return false; }
 
+    // Save/Export functionality
+    void SaveBoard( const wxString& aFileName, BOARD* aBoard,
+                    const std::map<std::string, UTF8>* aProperties = nullptr ) override;
+
+    void FootprintSave( const wxString& aFileName, const FOOTPRINT* aFootprint,
+                        const std::map<std::string, UTF8>* aProperties = nullptr ) override;
+
+    bool CanSaveBoard( const wxString& aFileName ) const override
+    {
+        return CanReadBoard( aFileName );
+    }
+
     PCB_IO_EASYEDAPRO();
     ~PCB_IO_EASYEDAPRO();
 

@@ -26,6 +26,7 @@
 #include <io/easyedapro/easyedapro_parser.h>
 #include <pcb_io/easyedapro/pcb_io_easyedapro.h>
 #include <pcb_io/easyedapro/pcb_io_easyedapro_parser.h>
+#include <pcb_io/easyedapro/pcb_io_easyedapro_serializer.h>
 #include <pcb_io/pcb_io.h>
 
 #include <board.h>
@@ -501,4 +502,133 @@ std::vector<FOOTPRINT*> PCB_IO_EASYEDAPRO::GetImportedCachedLibraryFootprints()
     }
 
     return result;
+}
+
+
+void PCB_IO_EASYEDAPRO::SaveBoard( const wxString& aFileName, BOARD* aBoard,
+                                   const std::map<std::string, UTF8>* aProperties )
+{
+    m_props = aProperties;
+    m_board = aBoard;
+
+    if( !m_board )
+        THROW_IO_ERROR( _( "No board to save" ) );
+
+    if( m_progressReporter )
+    {
+        m_progressReporter->Report( wxString::Format( _( "Saving %s..." ), aFileName ) );
+
+        if( !m_progressReporter->KeepRefreshing() )
+            THROW_IO_ERROR( _( "File export canceled by user." ) );
+    }
+
+    // Create serializer
+    PCB_IO_EASYEDAPRO_SERIALIZER serializer( m_board );
+
+    // Serialize the board to JSON format
+    std::vector<nlohmann::json> lines = serializer.SerializeBoard();
+
+    // Check if we're updating an existing .epro or creating a new one
+    wxFileName fname( aFileName );
+    bool isEpro = ( fname.GetExt() == wxS( "epro" ) || fname.GetExt() == wxS( "zip" ) );
+
+    if( isEpro )
+    {
+        // For .epro files, we need to create/update a ZIP archive
+        // This is a simplified version - a full implementation would merge with existing project data
+
+        // Create a temporary file for the PCB content
+        wxFileName tempFile = wxFileName::CreateTempFileName( wxS( "epcb_" ) );
+
+        {
+            wxFFileOutputStream ffos( tempFile.GetFullPath() );
+            wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+            for( const nlohmann::json& line : lines )
+            {
+                tos.WriteString( wxString::FromUTF8( line.dump() ) );
+                tos.WriteString( wxS( "\n" ) );
+            }
+        }
+
+        // Create or update the .epro ZIP archive
+        // Note: This is a simplified implementation. A full version would:
+        // 1. Read existing project.json
+        // 2. Update the PCB entry
+        // 3. Merge with existing footprints, symbols, etc.
+        // 4. Write back to ZIP
+
+        // For now, create a new minimal ZIP archive
+        {
+            wxFFileOutputStream zos( aFileName );
+            wxZipOutputStream    zip( zos, 0 );
+
+            // Add the PCB file
+            {
+                wxZipEntry* entry = new wxZipEntry( wxS( "PCB/board.epcb" ) );
+                zip.PutNextEntry( entry );
+
+                wxFFileInputStream fis( tempFile.GetFullPath() );
+                zip.Write( fis );
+                zip.CloseEntry();
+            }
+
+            // Create a minimal project.json
+            nlohmann::json project;
+            project[ "version" ] = "1.0";
+            project[ "type" ] = "pcb";
+            project[ "pcbs" ] = nlohmann::json::object();
+            project[ "pcbs" ][ "pcb_0" ] = "PCB/board.epcb";
+
+            wxString projectJson = project.dump( 2 );
+
+            {
+                wxZipEntry* entry = new wxZipEntry( wxS( "project.json" ) );
+                zip.PutNextEntry( entry );
+                zip.Write( projectJson.mb_str( wxConvUTF8 ), projectJson.length() );
+                zip.CloseEntry();
+            }
+
+            zip.Close();
+        }
+
+        // Clean up temp file
+        wxRemoveFile( tempFile.GetFullPath() );
+    }
+    else
+    {
+        // For raw .epcb files, write directly
+        wxFFileOutputStream ffos( aFileName );
+        wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+        for( const nlohmann::json& line : lines )
+        {
+            tos.WriteString( wxString::FromUTF8( line.dump() ) );
+            tos.WriteString( wxS( "\n" ) );
+        }
+    }
+}
+
+
+void PCB_IO_EASYEDAPRO::FootprintSave( const wxString& aFileName, const FOOTPRINT* aFootprint,
+                                       const std::map<std::string, UTF8>* aProperties )
+{
+    if( !aFootprint )
+        THROW_IO_ERROR( _( "No footprint to save" ) );
+
+    // Create serializer with a temporary board
+    PCB_IO_EASYEDAPRO_SERIALIZER serializer( nullptr );
+
+    // Serialize the footprint
+    std::vector<nlohmann::json> lines = serializer.SerializeFootprint( aFootprint );
+
+    // Write to file
+    wxFFileOutputStream ffos( aFileName );
+    wxTextOutputStream  tos( ffos, wxEOL_UNIX );
+
+    for( const nlohmann::json& line : lines )
+    {
+        tos.WriteString( wxString::FromUTF8( line.dump() ) );
+        tos.WriteString( wxS( "\n" ) );
+    }
 }

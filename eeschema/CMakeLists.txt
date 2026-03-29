@@ -90,6 +90,7 @@ set( EESCHEMA_SCH_IO
 
     # EasyEDA Pro IO plugin
     sch_io/easyedapro/sch_easyedapro_parser.cpp
+    sch_io/easyedapro/sch_easyedapro_serializer.cpp
     sch_io/easyedapro/sch_io_easyedapro.cpp
 
     # PADS Logic IO plugin

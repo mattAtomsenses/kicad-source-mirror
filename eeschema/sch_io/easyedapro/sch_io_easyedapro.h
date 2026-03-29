@@ -72,6 +72,17 @@ public:
 
     bool IsLibraryWritable( const wxString& aLibraryPath ) override { return false; }
 
+    // Save/Export functionality
+    void SaveSchematicFile( const wxString& aFileName, SCH_SHEET* aSheet,
+                            SCHEMATIC* aSchematic,
+                            const std::map<std::string, UTF8>* aProperties = nullptr ) override;
+
+    void SaveLibrary( const wxString& aFileName,
+                      const std::map<std::string, UTF8>* aProperties = nullptr ) override;
+
+    void SaveSymbol( const wxString& aLibraryPath, const LIB_SYMBOL* aSchSymbol,
+                     const std::map<std::string, UTF8>* aProperties = nullptr ) override;
+
 private:
     struct PRJ_DATA; // Opaque data structure
     PRJ_DATA* m_projectData = nullptr;
