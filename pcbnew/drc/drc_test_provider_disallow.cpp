@@ -312,6 +312,11 @@ bool DRC_TEST_PROVIDER_DISALLOW::Run()
                         }
                     }
 
+                    // N.B. HOLE_PROXY is set/cleared on the item's flags for
+                    // EvalRules to distinguish hole-specific disallow constraints.
+                    // This is a non-atomic read-modify-write on m_flags, so this
+                    // provider must run with each item processed by only one thread
+                    // at a time (guaranteed by submit_loop's work partitioning).
                     if( item->HasHole() )
                     {
                         item->SetFlags( HOLE_PROXY );

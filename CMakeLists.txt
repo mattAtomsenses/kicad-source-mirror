@@ -701,7 +701,7 @@ if( NOT APPLE )
         CACHE STRING "Location of KiCad stock EDA library data" )
 
     if( WIN32 )
-        set( KICAD_PLUGINS ${KICAD_BIN}/scripting/plugins
+        set( KICAD_PLUGINS ${KICAD_DATA}/plugins
             CACHE PATH "Location of KiCad plugins." )
 
         set( KICAD_LIB ${KICAD_BIN}
@@ -765,11 +765,6 @@ else()
         CACHE PATH "Location of KiCad documentation files." FORCE )
     set( KICAD_DEMOS demos
         CACHE PATH "Location of KiCad demo files." FORCE )
-
-    # Required to run from build folder
-    if( PYTHON_FRAMEWORK )
-        list(APPEND CMAKE_BUILD_RPATH ${PYTHON_FRAMEWORK} )
-    endif()
 
     # RPATH settings for building shared libraries
     set( CMAKE_MACOSX_RPATH FALSE )
@@ -1040,6 +1035,13 @@ if( KICAD_USE_SENTRY )
         set( CRASHPAD_WER_ENABLED ON )
     endif()
     add_subdirectory( thirdparty/sentry-native )
+
+    if( APPLE AND TARGET crashpad_handler )
+        set_target_properties(crashpad_handler PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${OSX_BUNDLE_BUILD_BIN_DIR}"
+        )
+    endif()
+
     add_compile_definitions( KICAD_USE_SENTRY )
 endif()
 

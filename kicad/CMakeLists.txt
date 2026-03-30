@@ -252,6 +252,13 @@ if( APPLE )
             )
     ]] )
 
+    if( KICAD_USE_SENTRY )
+        install( FILES $<TARGET_FILE:crashpad_handler>
+            DESTINATION ${OSX_BUNDLE_INSTALL_BIN_DIR}
+            COMPONENT binary
+            )
+    endif()
+
     # move all individual app bundles into main bundle
     install( CODE "
         # helper function to move a bundle into main bundle
@@ -276,6 +283,10 @@ if( APPLE )
         move_to_main_bundle( \"pcb_calculator.app\" \"PCB Calculator.app\" )
         move_to_main_bundle( \"pcbnew.app\" \"PCB Editor.app\" )
         move_to_main_bundle( \"pl_editor.app\" \"Page Layout Editor.app\" )
+
+        if( ${KICAD_USE_SENTRY} )
+            file( REMOVE_RECURSE ${OSX_BUNDLE_INSTALL_BIN_DIR}/crashpad_handler.dSYM )
+        endif()
 
         cmake_policy( SET CMP0012 NEW )
         if ( ${KICAD_APPLE_MAKE_RELOCATEABLE_BUNDLE} )

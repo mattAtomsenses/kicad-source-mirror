@@ -547,6 +547,8 @@ bool FOOTPRINT::Deserialize( const google::protobuf::Any &aContainer )
 
     SetLocalZoneConnection( FromProtoEnum<ZONE_CONNECTION>( overrides.zone_connection() ) );
 
+    m_netTiePadGroups.clear();
+
     for( const types::NetTieDefinition& netTieMsg : footprint.definition().net_ties() )
     {
         wxString group;

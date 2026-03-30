@@ -1609,6 +1609,7 @@ private:
 
     // Cache for fast access to items in the containers above by KIID, including children.
     // Mutable because it's a performance cache that can be populated during const lookups.
+    // NOT protected by m_CachesMutex. Only safe for single-threaded access (UI, serialization).
     mutable std::unordered_map<KIID, BOARD_ITEM*>        m_itemByIdCache;
     mutable std::unordered_map<const BOARD_ITEM*, KIID>  m_cachedIdByItem;
 

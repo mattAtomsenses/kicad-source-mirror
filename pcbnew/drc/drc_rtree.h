@@ -27,6 +27,7 @@
 
 #include <board_item.h>
 #include <pcb_field.h>
+#include <cassert>
 #include <memory>
 #include <unordered_set>
 #include <set>
@@ -105,6 +106,7 @@ public:
                  int aWorstClearance, bool aAtomicTables = false )
     {
         wxCHECK( aTargetLayer != UNDEFINED_LAYER, /* void */ );
+        assert( !m_tree.count( aTargetLayer ) && "Insert after Build() is silently wrong" );
 
         if( aItem->Type() == PCB_FIELD_T && !static_cast<PCB_FIELD*>( aItem )->IsVisible() )
             return;

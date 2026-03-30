@@ -790,7 +790,7 @@ bool PCB_SELECTION_TOOL::selectPoint( const VECTOR2I& aWhere, bool aOnDrag, bool
         {
             ClearSelection( true /*quiet mode*/ );
             m_toolMgr->ProcessEvent( EVENTS::UnselectedEvent );
-            return true;
+            return false;
         }
 
         return false;

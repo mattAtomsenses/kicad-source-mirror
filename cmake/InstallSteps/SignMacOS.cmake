@@ -1,12 +1,12 @@
 
-function( sign_kicad_bundle target signing_id use_secure_timestamp use_hardened_runtime entitlements_file)
+function( sign_kicad_bundle target signing_id use_secure_timestamp use_hardened_runtime entitlements_file use_sentry)
 
     # If the signing ID wasn't passed in, use - which means adhoc signing
     if ( NOT signing_id )
         set( signing_id "-")
     endif()
 
-    MESSAGE( STATUS "Signing ${target} with ${signing_id}, hardened runtime: ${use_hardened_runtime}, secure timestamp: ${use_secure_timestamp}, entitlements file: ${entitlements_file}" )
+    MESSAGE( STATUS "Signing ${target} with ${signing_id}, hardened runtime: ${use_hardened_runtime}, secure timestamp: ${use_secure_timestamp}, entitlements file: ${entitlements_file}, sentry: ${use_sentry}" )
 
     # --deep doesn't really work and is officially deprecated as of macos 13
     # https://developer.apple.com/library/archive/technotes/tn2206/_index.html#//apple_ref/doc/uid/DTS40007919-CH1-TNTAG201
@@ -33,6 +33,10 @@ function( sign_kicad_bundle target signing_id use_secure_timestamp use_hardened_
             "${target}/Contents/MacOS/idfrect"
             "${target}/Contents/MacOS/kicad-cli"
             "${target}/Contents/MacOS/kicad")
+
+    if( use_sentry )
+        set( sign_list ${sign_list} "${target}/Contents/MacOS/crashpad_handler" )
+    endif()
 
     set( sign_list ${sign_list} ${framework_dylibs} ${plugins} ${translations} ${kicad_bins} ) # do i need to quote this differently?
 

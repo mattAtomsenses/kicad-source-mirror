@@ -341,6 +341,7 @@ void RC_TREE_MODEL::rebuildModel( std::shared_ptr<RC_ITEMS_PROVIDER> aProvider, 
     }
 
     m_tree.clear();
+    m_handles.clear();
 
     // wxDataView::ExpandAll() pukes with large lists
     int count = 0;
@@ -713,7 +714,6 @@ void RC_TREE_MODEL::DeleteItems( bool aCurrentOnly, bool aIncludeExclusions, boo
                 retireNodeTree( child );
             }
 
-            m_tree[i]->m_Children.clear();
             ItemsDeleted( markerItem, childItems );
 
             retireNodeTree( m_tree[i] );

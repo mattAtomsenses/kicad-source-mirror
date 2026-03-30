@@ -615,6 +615,18 @@ LIB_SYMBOL* SCH_IO_KICAD_SEXPR_PARSER::parseLibSymbol( LIB_SYMBOL_MAP& aSymbolLi
             catch( const IO_ERROR& e )
             {
                 m_parseWarnings.push_back( e.What() );
+
+                int depth = 0;
+
+                for( int tok = embeddedFilesParser.NextTok();
+                     tok != DSN_EOF;
+                     tok = embeddedFilesParser.NextTok() )
+                {
+                    if( tok == DSN_LEFT )
+                        depth++;
+                    else if( tok == DSN_RIGHT && --depth < 0 )
+                        break;
+                }
             }
 
             SyncLineReaderWith( embeddedFilesParser );
@@ -3047,6 +3059,18 @@ void SCH_IO_KICAD_SEXPR_PARSER::ParseSchematic( SCH_SHEET* aSheet, bool aIsCopya
             catch( const PARSE_ERROR& e )
             {
                 m_parseWarnings.push_back( e.What() );
+
+                int depth = 0;
+
+                for( int tok = embeddedFilesParser.NextTok();
+                     tok != DSN_EOF;
+                     tok = embeddedFilesParser.NextTok() )
+                {
+                    if( tok == DSN_LEFT )
+                        depth++;
+                    else if( tok == DSN_RIGHT && --depth < 0 )
+                        break;
+                }
             }
 
             SyncLineReaderWith( embeddedFilesParser );
